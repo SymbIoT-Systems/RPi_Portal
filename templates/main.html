@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
+    <!-- Local stylesheet -->
+    <!-- <link rel="stylesheet" type="text/css" href="static/bootstrap.min.js"> -->
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+    
+   <!--  <script src="static/jquery.min.js"></script>
+    <script type="text/javascript" src="socket.io.min.js"></script> -->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+    
+    <script>
+    
+    //Check if no file selected while user tries to upload an image
+    function validateForm() {
+        var x = document.forms["uploadform"]["FileButton"].value;
+        if (x==null || x=="") {
+            alert("Please choose a file");
+            return false;
+        }
+    }
+    function allbuttonsblock(booleanval) {
+        $("#FlashButton").prop("disabled",booleanval);
+        $("#switch").prop("disabled",booleanval);
+        $("#ping").prop("disabled",booleanval);
+        $("#listen").prop("disabled",booleanval);
+        $("#logfile").prop("disabled",booleanval);
+        $("#FileButton").prop("disabled",booleanval); 
+    }
+
+    $(document).ready(function(){
+      
+      //Table for Cluster Status
+      var titledata = [['NodeNum', 'Status',]];
+      var html = '<table><tbody>';
+      for (var i = 0, rowNum = 9; i < rowNum; ++i) {
+        html += '<tr>';
+        for (var j = 0, colNum = 2; j < colNum; ++j ) {
+          if (i==0) {
+            html += '<td>' + titledata[i][j] + '</td>';
+          }
+          else if(j==0){
+            html+= '<td>'+ i + '</td>';
+          }
+          else if (j==1){
+            html += '<td id="status'+i+'">Checking....</td>';
+          }
+          else{
+            html += '<td>dummy data</td>';
+          };
+        }
+        html += "</tr>";
+        }
+      html += '</tbody></table>';
+      $(html).appendTo('#table1');
+      
+      //Flash Initiated
+      // if ($("#consolebox").text().indexOf("Flash Initiated")>=0)
+      if (("{{flashstarted}}").indexOf("True")>=0) 
+      {
+        // Once flash initiated:
+        //Disable all buttons...trust me...it's for their own good..
+        $("#FlashButton").prop("disabled",true);
+        $("#bar").show();
+        allbuttonsblock(true);
+
+      $.post("/flashnode/",{data:'dummydata'},function(result, status){
+        $("#consolebox").append(result.replace(/\n/g, "</br>"));
+
+        $.post("/ackreceived/",{data:'dumydata'},function(result,status){
+          alert("Node no."+result+" flashed succesfully!");
+          $("#bar").hide();
+          allbuttonsblock(false);  
+         });
+      });
+      }
+      else{
+        $("#bar").hide();
+        // isclusteralive(); 
+        // Un-comment for actual working^
+      }
+
+      function isclusteralive (argument) {
+        allbuttonsblock(true);
+        var count=1;
+        var intervalcluster=setInterval(function(){
+          if(count==8){
+            clearInterval(intervalcluster);
+            allbuttonsblock(false);
+          }
+          $.post("/cluster_status/",{data:count},function(result,status){
+            dataformatted=$.parseJSON(result);
+              $('#status'+dataformatted['1']).html(dataformatted['0']);
+        });
+          count++;
+        }
+        ,5000);
+      }
+
+      
+      /*-------------------- EXPANDABLE PANELS ----------------------*/
+        var panelspeed = 300; //panel animate speed in milliseconds
+        var totalpanels = 3; //total number of collapsible panels
+        var defaultopenpanel = 0; //leave 0 for no panel open
+        var accordian = false; //set panels to behave like an accordian, with one panel only ever open at once      
+ 
+        var panelheight = new Array();
+        var currentpanel = defaultopenpanel;
+        var iconheight = parseInt($('.icon-close-open').css('height'));
+        var highlightopen = true;
+ 
+        //Initialise collapsible panels
+        function panelinit() {
+                for (var i=1; i<=totalpanels; i++) {
+                    panelheight[i] = parseInt($('#cp-'+i).find('.expandable-panel-content').css('height'));
+                    $('#cp-'+i).find('.expandable-panel-content').css('margin-top', -panelheight[i]);
+                    if (defaultopenpanel == i) {
+                        $('#cp-'+i).find('.icon-close-open').css('background-position', '0px -'+iconheight+'px');
+                        $('#cp-'+i).find('.expandable-panel-content').css('margin-top', 0);
+                    }
+                }
+        }
+ 
+        $('.expandable-panel-heading').click(function() {
+            var obj = $(this).next();
+            var objid = parseInt($(this).parent().attr('ID').substr(3,2));
+            currentpanel = objid;
+            if (accordian == true) {
+                resetpanels();
+            }
+ 
+            if (parseInt(obj.css('margin-top')) <= (panelheight[objid]*-1)) {
+                obj.clearQueue();
+                obj.stop();
+                obj.prev().find('.icon-close-open').css('background-position', '0px -'+iconheight+'px');
+                obj.animate({'margin-top':0}, panelspeed);
+                if (highlightopen == true) {
+                    $('#cp-'+currentpanel + ' .expandable-panel-heading').addClass('header-active');
+                }
+            } else {
+                obj.clearQueue();
+                obj.stop();
+                obj.prev().find('.icon-close-open').css('background-position', '0px 0px');
+                obj.animate({'margin-top':(panelheight[objid]*-1)}, panelspeed);
+                if (highlightopen == true) {
+                    $('#cp-'+currentpanel + ' .expandable-panel-heading').removeClass('header-active');
+                }
+            }
+        });
+ 
+        function resetpanels() {
+            for (var i=1; i<=totalpanels; i++) {
+                if (currentpanel != i) {
+                    $('#cp-'+i).find('.icon-close-open').css('background-position', '0px 0px');
+                    $('#cp-'+i).find('.expandable-panel-content').animate({'margin-top':-panelheight[i]}, panelspeed);
+                    if (highlightopen == true) {
+                        $('#cp-'+i + ' .expandable-panel-heading').removeClass('header-active');
+                    }
+                }
+            }
+        }
+        
+       //Uncomment these lines if the expandable panels are not a fixed width and need to resize
+        $( window ).resize(function() {
+          panelinit();
+        });
+ 
+        $(window).load(function() {
+            panelinit();
+        }); //END LOAD
+
+      var socket = io.connect('http://' + document.domain + ':' + location.port + '/listen');
+      $("#stoplisten").hide();
+      socket.on('my response', function(msg) {
+      $('#consolebox').append('<p>Received: ' + msg.data + '</p>');
+      $('#consolebox').scrollTop($('#consolebox')[0].scrollHeight);
+      });
+
+      $("#ping").click(function(){
+        for (var i = 1; i < 9; i++) {
+         $('#status'+i).html('Checking...');
+        };
+        $('#ping').prop("disabled",true);
+        isclusteralive();
+      });
+
+      $("#listen").click(function(){
+        $.post( "/startlisten/",{data:'dummydata'});
+        $("#stoplisten").show();
+        $("#listen").hide();
+      });
+
+      $("#stoplisten").click(function(){
+        $.post("/stoplisten/");
+        $("#listen").show();
+        $("#stoplisten").hide();
+      });
+    
+     $("#formswitch").submit(function(event) {
+      $('#baseimage').html('<p>Switching to image number: ' + $('input[name=imagenumberswitch]:checked', '#formswitch').val() + '</p>......');
+      /* stop form from submitting normally */
+      event.preventDefault();
+      /* get some values from elements on the page: */
+      var $form = $( this ),
+          url = $form.attr('action');
+      /* Send the data using post */
+      var posting = $.post( url, { imagenumberswitch: $('input[name=imagenumberswitch]:checked', '#formswitch').val()} );
+      var interval = setInterval(function() {
+          {
+           $('#baseimage').append('.');
+          }
+        },500
+      );
+      /* Alerts the results */
+      posting.done(function( data ) {
+        clearInterval(interval);
+        dataformatted=$.parseJSON(data);
+        $('#baseimage').html("</br>"+dataformatted['baseimagedata'].replace(/\n/g, "</br>"));
+        $('#consolebox').html(dataformatted['consoledata'].replace(/\n/g, "</br>"));
+      });
+    });
+    
+    // Setting the filename for the listen logfile according to time
+    var time = $.now();
+    $("#logfile").click(function(){
+      $.post("/savelog/",{filedata:$("#consolebox").html(),filename:"log-"+time+".txt"},function(result,status){
+         window.location.href = 'uploads/log-'+time+".txt";
+      });
+    });
+});
+    </script>
+  </head>
+
+  <body>
+   <div class="container">
+      <div class="header">
+        <h1 style ="color:ffffff" background-color="#cccccc">Edge Router Control Panel</h1>
+      </div>
+      <hr/>
+      
+      <!-- Upload and flash code -->
+      <div class="expandable-panel" id="cp-1">
+        <div class="expandable-panel-heading">
+          <h2>Upload<span class="icon-close-open"></span></h2>
+        </div>
+
+        <div class="expandable-panel-content">
+        </br>
+          Upload relevant tos_image.xml file 
+          </br>
+          </br>
+          <form action="upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()" name="uploadform">
+            <input type="file" name="file" id="FileButton" name="FileButton"></br>
+            Choose slot number:
+            <input type="number" name="imagenumber" min="1" max="3" value="1">
+            <input type="submit" value="Flash" id="FlashButton">
+          </form>
+          </br>
+          
+          <div class="bar" id="bar"></div>
+
+        </div>
+      </div>
+
+      <hr/>
+
+      <!-- Ping remote nodes -->
+      <div class="expandable-panel" id="cp-2">
+        <div class="expandable-panel-heading">
+          <h2>Cluster Info<span class="icon-close-open"></span></h2>
+        </div>
+
+        <div class="expandable-panel-content">
+          <h4>Cluster Details:</h4>
+          <center>
+            
+          </br>
+          </br>
+          <div id="table1" class="CSSTableGenerator"></div>
+          </br>
+          </br>
+      
+        <button name="ping" id="ping">Ping All Nodes</button>
+        </center>
+        </br>
+        </br>
+        <h4>Basestation Details:</h4>
+        <p>
+          <!-- Status: -->
+          <center>
+          <div class="baseimagebox" id="baseimage">
+          </br>
+            {{baseimagedata}}
+          </div>
+        <!-- Data coming from tos-deluge -p of basestation -->
+
+        <!-- Switch images on all remote nodes -->
+        </br>
+        Please select image number to switch to:
+       <form action="switch/" id="formswitch" name="formswitch">
+       </br>
+          <input type="radio" name="imagenumberswitch" value="1" checked>Slot 1</br>
+          <input type="radio" name="imagenumberswitch" value="2">Slot 2</br>
+          <input type="radio" name="imagenumberswitch" value="3">Slot 3</br>
+        </br>
+          <input type="submit" value="Switch" id="switch">
+        </form>
+        </center>
+      </br>
+      </br>
+        </div>
+      </div>
+      <hr/>
+
+      
+      <!-- Run Packet Sniffer on Basestation  -->
+      <div class="expandable-panel" id="cp-3">
+        <div class="expandable-panel-heading">
+          <h2>Packet Sniffer<span class="icon-close-open"></span></h2>
+        </div>
+
+        <div class="expandable-panel-content">
+        </br>
+          Start the sniffer:
+          <button name="listen" id="listen" >Listen</button>
+          <button name="stoplisten" id="stoplisten" >Stop Listen</button>
+          </br>
+          </br>
+          <button id="logfile"> Download data to file</button>
+          </br>
+          </br>
+        </div>
+      </div>
+      
+      </br>
+      </br>
+
+      <div class="console" id="consolebox" style="overflow:scroll; height:350px;">
+        {{consoledata}}
+      </div>
+      </br>
+      </br>
+    </div>
+  </body>
+</html>
