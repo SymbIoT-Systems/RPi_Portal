@@ -17,7 +17,7 @@ import serial
 from flask.ext.socketio import SocketIO, emit
 from time import sleep
 import subprocess
-#from pyudev import Context, Monitor, MonitorObserver, Device
+from pyudev import Context, Monitor, MonitorObserver, Device
 import sys
 import json
 import sqlite3
@@ -25,11 +25,8 @@ import re #String replacements
 import mosquitto, os, urlparse
 from gevent import monkey
 monkey.patch_all()
-import paho.mqtt.client as mqtt
-from time import sleep
-import zlib
-#Global variable declarations
 
+#Global variable declarations
 
 templateData = {
     'consoledata':"Nothing yet"+"\n",
@@ -81,7 +78,6 @@ if (file_status == False):
     
 
 #Function Definitions
-
 #MQTT Functions
 def on_connect(mosq, obj, rc):
     print("rc: " + str(rc))
@@ -91,25 +87,20 @@ def on_message(mosq, obj, msg):
     if msg.topic == "response/1":
     	if "usbbasepath" in str(msg.payload):
     		# here send data to frontend
-            sleep(2)
-            socketio.emit('usbbasepath',str(msg.payload).replace("usbbasepath",""),namespace="/listen")
+    		socketio.emit('usbbasepath',str(msg.payload).replace("usbbasepath",""),namespace="/templatedata")
     	elif "ping" in str(msg.payload):
-            status=json.loads(str(msg.payload).replace("ping ",''))
-            socketio.emit('ping',json.dumps(status),namespace="/listen")
+    		status=json.loads(str(msg.payload).replace("ping ",''))
+    		return json.dumps(status)
     	elif "switch" in str(msg.payload):
-            status=json.loads(str(msg.payload).replace("switch ",''))
-            socketio.emit('switch',json.dumps(status),namespace="/listen")
+			return json.dumps(str(msg.payload).replace("switch ",""))
         elif "flash" in str(msg.payload):
-            status=json.loads(str(msg.payload).replace("flash ",''))
-            socketio.emit('flash',json.dumps(status),namespace="/listen")
+            return str(msg.payload).replace("flash ","")
         elif "ackreceived" in str(msg.payload):
             global templatedata
             templateData['consoledata']="Nothing yet"
-            socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
+            return str(msg.payload).replace("ackreceived ","")
     elif msg.topic == "listen/1":
     	print str(msg.payload)
-    elif msg.topic == "register":
-        print str(msg.payload)
 
 
 def on_publish(mosq, obj, mid):
@@ -127,12 +118,11 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
 #MQTT Events
-#mqttc = mosquitto.Mosquitto("python_pub")
-mqttc = mqtt.Client()
+mqttc = mosquitto.Mosquitto()
 # Assign event callbacks
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
-#mqttc.on_publish = on_publish
+mqttc.on_publish = on_publish
 mqttc.on_subscribe = on_subscribe
 
 url_str = 'mqtt://localhost:1883'
@@ -140,10 +130,9 @@ url = urlparse.urlparse(url_str)
 mqttc.connect(url.hostname, url.port)
 
 #Channels to subscribe
-mqttc.subscribe("register",0)
 mqttc.subscribe("response/1", 0)
 mqttc.subscribe("listen/1", 0)
-mqttc.loop_start()
+
 #App routes         
 @app.route('/')
 def index():
@@ -153,15 +142,13 @@ def index():
 @app.route('/cluster_status/',methods=['POST'])
 def pingall():
     imagenum=request.form['data']
-    mqttc.publish("commands/1","ping "+str(imagenum))
-    return "0"
-
+    mqttc.publish("commands/1","ping "+imagenum)
+    
 @app.route('/switch/', methods=['POST'])
 def switch():
     if request.method == "POST":
         imagenum = request.form['imagenumberswitch']
-        mqttc.publish("commands/1","switch "+str(imagenum))  
-        return "0"
+        mqttc.publish("commands/1","switch "+imagenum)  
 
 # Route that will process the file upload
 @app.route('/upload', methods=['POST'])
@@ -182,12 +169,7 @@ def upload():
     templateData['flashstarted']="True"
     f = open(imagepath)
     datastring = f.read()
-
     byteArray = bytes(datastring)
-
-    checksum = zlib.crc32(datastring, 0xFFFF)
-    print "Checksum is: " + str(checksum)
-
     mqttc.publish("files/1", byteArray ,0)
     return redirect('/')
 
@@ -199,13 +181,13 @@ def uploaded_file(filename):
 @app.route('/flashnode/', methods=['POST'])
 def flashnode():
     global slotnum
-    mqttc.publish("commands/1","flash "+str(slotnum))
+    mqtt.publish("commands/1","flash "+slotnum)
     templateData['flashstarted']="False"
-    return "0"
 
 @app.route('/startlisten/',methods=['POST'])
 def startlisten():
-    mqttc.publish("commands/1","startlisten")
+    mqttc.
+publish("commands/1","startlisten")
     return "Listen Start Done"    
 
 @app.route('/savelog/',methods=['POST'])
@@ -226,8 +208,7 @@ def stoplisten():
 
 @app.route('/ackreceived/',methods=['POST'])
 def ackreceived():
-    mqttc.publish("commands/1","ackreceived")
-    return "0"
+	mqttc.publish("commands/1","ackreceived")
 
 @app.route('/data_manage/')
 def data_manage():
@@ -301,18 +282,14 @@ def data_edit():
 def handle_message(message):
     print('received message: ' + message)
 
-@socketio.on('commands',namespace='/commands')
-def handle_message(message):
-    print('received message: ' + message)
-
 
 if __name__ == '__main__':
     socketio.run(app,host='0.0.0.0',port=8088)
     # Continue the network loop, exit when an error occurs
-    #rc = 0
-    #while rc == 0:
-    #   rc = mqttc.loop()
-    # print("rc: " + str(rc))
+    rc = 0
+    while rc == 0:
+        rc = mqttc.loop()
+    print("rc: " + str(rc))
 
 
 

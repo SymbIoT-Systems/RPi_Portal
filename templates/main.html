@@ -13,7 +13,7 @@
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
-    
+        
     <script>
     
     //Check if no file selected while user tries to upload an image
@@ -34,7 +34,7 @@
     }
 
     $(document).ready(function(){
-      
+    
       //Table for Cluster Status
       var titledata = [['NodeNum', 'Status',]];
       var html = '<table><tbody>';
@@ -70,13 +70,7 @@
         allbuttonsblock(true);
 
       $.post("/flashnode/",{data:'dummydata'},function(result, status){
-        $("#consolebox").append(result.replace(/\n/g, "</br>"));
 
-        $.post("/ackreceived/",{data:'dumydata'},function(result,status){
-          alert("Node no."+result+" flashed succesfully!");
-          $("#bar").hide();
-          allbuttonsblock(false);  
-         });
       });
       }
       else{
@@ -89,13 +83,12 @@
         allbuttonsblock(true);
         var count=1;
         var intervalcluster=setInterval(function(){
-          if(count==8){
+          if(count==3){
             clearInterval(intervalcluster);
             allbuttonsblock(false);
           }
           $.post("/cluster_status/",{data:count},function(result,status){
-            dataformatted=$.parseJSON(result);
-              $('#status'+dataformatted['1']).html(dataformatted['0']);
+            
         });
           count++;
         }
@@ -174,13 +167,50 @@
             panelinit();
         }); //END LOAD
 
+
       var socket = io.connect('http://' + document.domain + ':' + location.port + '/listen');
       $("#stoplisten").hide();
+      
       socket.on('my response', function(msg) {
       $('#consolebox').append('<p>Received: ' + msg.data + '</p>');
       $('#consolebox').scrollTop($('#consolebox')[0].scrollHeight);
       });
 
+      socket.on('usbbasepath', function(msg) {
+        dataformatted=$.parseJSON(msg);
+        $('#baseimage').html("</br>"+dataformatted['baseimagedata'].replace(/\n/g, "</br>"));
+        $('#consolebox').html(dataformatted['consoledata'].replace(/\n/g, "</br>"));
+      });
+
+      socket.on('ping', function(msg) {
+        dataformatted=$.parseJSON(msg);
+        $('#status'+dataformatted['1']).html(dataformatted['0']);
+      });
+
+      socket.on('switch',function(msg){
+        dataformatted=$.parseJSON(msg);
+        $('#baseimage').html("</br>"+dataformatted['baseimagedata'].replace(/\n/g, "</br>"));
+        $('#consolebox').html(dataformatted['consoledata'].replace(/\n/g, "</br>"));
+      });
+
+      socket.on('flash',function(msg){
+        dataformatted=$.parseJSON(msg);
+
+        $("#consolebox").append(dataformatted['data'].replace(/\n/g, "</br>"));
+
+        $.post("/ackreceived/",{data:'dumydata'},function(result,status){
+          alert("Node no."+result+" flashed succesfully!");
+        $("#bar").hide();
+        allbuttonsblock(false);
+        });
+      });
+
+      socket.on('ackreceived',function (msg) {
+        alert("Node no."+msg+" flashed succesfully!");
+        $("#bar").hide();
+        allbuttonsblock(false); 
+      });
+      
       $("#ping").click(function(){
         for (var i = 1; i < 9; i++) {
          $('#status'+i).html('Checking...');
@@ -219,9 +249,6 @@
       /* Alerts the results */
       posting.done(function( data ) {
         clearInterval(interval);
-        dataformatted=$.parseJSON(data);
-        $('#baseimage').html("</br>"+dataformatted['baseimagedata'].replace(/\n/g, "</br>"));
-        $('#consolebox').html(dataformatted['consoledata'].replace(/\n/g, "</br>"));
       });
     });
     
