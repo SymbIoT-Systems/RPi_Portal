@@ -172,7 +172,7 @@
       $("#stoplisten").hide();
       
       socket.on('my response', function(msg) {
-      $('#consolebox').append('<p>Received: ' + msg.data + '</p>');
+      $('#consolebox').append('<p>Received: ' + msg + '</p>');
       $('#consolebox').scrollTop($('#consolebox')[0].scrollHeight);
       });
 
@@ -199,9 +199,7 @@
         $("#consolebox").append(dataformatted['data'].replace(/\n/g, "</br>"));
 
         $.post("/ackreceived/",{data:'dumydata'},function(result,status){
-          alert("Node no."+result+" flashed succesfully!");
-        $("#bar").hide();
-        allbuttonsblock(false);
+
         });
       });
 

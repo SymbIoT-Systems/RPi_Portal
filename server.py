@@ -106,11 +106,25 @@ def on_message(mosq, obj, msg):
             global templatedata
             templateData['consoledata']="Nothing yet"
             socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
+        elif "batterystatus" in str(msg.payload):
+            print msg.payload            
+            
     elif msg.topic == "listen/1":
-    	print str(msg.payload)
+    	socketio.emit('my response',str(msg.payload),namespace="/listen")
     elif msg.topic == "register":
-        print str(msg.payload)
-
+        database=json.loads(str(msg.payload))
+        conn=sqlite3.connect('portal.db')
+        cursor=conn.execute("SELECT * FROM CLUSTERDETAILS WHERE PI_MAC='"+database['Gatewaymac']+"';")
+        a=cursor.fetchall()
+        listofnodes=a[0][4]
+        conn.execute("UPDATE CLUSTERDETAILS SET PI_IP = \'" + database['Gatewayip'] +"\', SLOT1=\'"+database['Progname1'] +"\', SLOT2=\'"+database['Progname2'] +"\', SLOT3=\'"+database['Progname3'] +"\' WHERE ID="+ str(a[0][0]) +";")
+        conn.commit()
+        registerresponse={
+            'clusterid':a[0][1],
+            'listofnodes':listofnodes
+        }
+        mqttc.publish('register_response',json.dumps(registerresponse))
+        conn.close()
 
 def on_publish(mosq, obj, mid):
     print("mid: " + str(mid))
@@ -281,7 +295,7 @@ def data_edit():
         dev_id=(request.form['dev_id'])
         node_prop=request.form['nodeprop']
         node_type=request.form['nodetype']
-        conn.execute("UPDATE NODEDETAILS SET NODE_NUM = "+nodeid+" ,DEV_ID = "+dev_id+", NODE_TYPE = '"+node_type+"', SPECIAL_PROP = '" + node_prop + "' WHERE ID="+ idno +";")
+        conn.execute("UPDATE NODEDETAILS SET NODE_NUM = "+nodeid+" ,DEV_ID = '"+dev_id+"', NODE_TYPE = '"+node_type+"', SPECIAL_PROP = '" + node_prop + "' WHERE ID="+ idno +";")
         print "done"
     elif table == "clusteredit":
         clusterno=request.form['clusterno']
