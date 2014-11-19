@@ -33,32 +33,82 @@
         $("#FileButton").prop("disabled",booleanval); 
     }
 
+    function tableedit(){
+      $.post("/clusterdetails/",{data:$("#selectcluster option:selected").val()},function(result,status){
+        clusterid=$("#selectcluster option:selected").val();
+        dataformatted=$.parseJSON(result);
+        listofnodes = dataformatted['listofnodes'].split(",");
+        clusterlist = dataformatted['clusternumbers'].split(",");
+        
+        var titledata = [['NodeNum', 'Status','']];
+        var html = '<table id="table1" class="CSSTableGenerator"><tbody>';
+        for (var i = 0, rowNum = listofnodes.length + 1 ; i < rowNum; ++i) {
+          html += '<tr>';
+          for (var j = 0, colNum = 3; j < colNum; ++j ) {
+            if (i==0) {
+              html += '<td>' + titledata[i][j] + '</td>';
+            }
+            else if(j==0){
+              html+= '<td>'+ listofnodes[i-1] + '</td>';
+            }
+            else if (j==1){
+              html += '<td id="status'+listofnodes[i-1]+'">Checking....</td>';
+            }
+            else{
+              html += '<td id="battery'+listofnodes[i-1]+'"></td>';
+            };
+          } 
+          html += "</tr>";
+          }
+        html += '</tbody></table>';
+        //$(html).appendTo('#table1');
+        $('#table1').replaceWith(html);
+
+        $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
+        //$("#selectcluster option:selected").val(value);
+      });
+    }
+
     $(document).ready(function(){
-    
       //Table for Cluster Status
-      var titledata = [['NodeNum', 'Status',]];
-      var html = '<table><tbody>';
-      for (var i = 0, rowNum = 9; i < rowNum; ++i) {
-        html += '<tr>';
-        for (var j = 0, colNum = 2; j < colNum; ++j ) {
-          if (i==0) {
-            html += '<td>' + titledata[i][j] + '</td>';
+      $.post("/clusterdetails/",{data:'dummydata'},function(result,status){
+        dataformatted=$.parseJSON(result);
+        listofnodes = dataformatted['listofnodes'].split(",");
+        clusterlist = dataformatted['clusternumbers'].split(",");
+        
+        var titledata = [['NodeNum', 'Status','']];
+        var html = '<table><tbody>';
+        for (var i = 0, rowNum = listofnodes.length + 1 ; i < rowNum; ++i) {
+          html += '<tr>';
+          for (var j = 0, colNum = 3; j < colNum; ++j ) {
+            if (i==0) {
+              html += '<td>' + titledata[i][j] + '</td>';
+            }
+            else if(j==0){
+              html+= '<td>'+ listofnodes[i-1] + '</td>';
+            }
+            else if (j==1){
+              html += '<td id="status'+listofnodes[i-1]+'">Checking....</td>';
+            }
+            else{
+              html += '<td id="battery'+listofnodes[i-1]+'"></td>';
+            };
+          } 
+          html += "</tr>";
           }
-          else if(j==0){
-            html+= '<td>'+ i + '</td>';
-          }
-          else if (j==1){
-            html += '<td id="status'+i+'">Checking....</td>';
-          }
-          else{
-            html += '<td>dummy data</td>';
-          };
-        }
-        html += "</tr>";
-        }
-      html += '</tbody></table>';
-      $(html).appendTo('#table1');
-      
+        html += '</tbody></table>';
+        $(html).appendTo('#table1');
+
+        var htmlcluster='<select id="selectcluster" onchange="tableedit()">';
+        for (var i = 0; i < clusterlist.length; i++) {
+          htmlcluster+='<option value="'+clusterlist[i]+'">'+clusterlist[i]+'</option>';
+        };
+        htmlcluster+='</select>';  
+        $(htmlcluster).appendTo('#clusternumbers');
+        clusterid=$("#selectcluster option:selected").val();
+        $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
+      });
+
       //Flash Initiated
       // if ($("#consolebox").text().indexOf("Flash Initiated")>=0)
       if (("{{flashstarted}}").indexOf("True")>=0) 
@@ -69,7 +119,7 @@
         $("#bar").show();
         allbuttonsblock(true);
 
-      $.post("/flashnode/",{data:'dummydata'},function(result, status){
+      $.post("/flashnode/",{data:'dummydata',clusterid:clusterid},function(result, status){
 
       });
       }
@@ -81,18 +131,17 @@
 
       function isclusteralive (argument) {
         allbuttonsblock(true);
-        var count=1;
+        var count=0;
         var intervalcluster=setInterval(function(){
-          if(count==3){
+          if(count==(listofnodes.length-1)){
             clearInterval(intervalcluster);
-            allbuttonsblock(false);
           }
-          $.post("/cluster_status/",{data:count},function(result,status){
+          $.post("/cluster_status/",{data:listofnodes[count],clusterid:clusterid},function(result,status){
             
         });
           count++;
         }
-        ,5000);
+        ,1000);
       }
 
       
@@ -185,6 +234,9 @@
       socket.on('ping', function(msg) {
         dataformatted=$.parseJSON(msg);
         $('#status'+dataformatted['1']).html(dataformatted['0']);
+        if (dataformatted['1'] == listofnodes[listofnodes.length-1]){
+          allbuttonsblock(false);
+        }
       });
 
       socket.on('switch',function(msg){
@@ -197,10 +249,13 @@
         dataformatted=$.parseJSON(msg);
 
         $("#consolebox").append(dataformatted['data'].replace(/\n/g, "</br>"));
+        if (dataformatted['data'].indexOf("initiated")>=0) {
+          $.post("/ackreceived/",{data:'dumydata',clusterid:clusterid},function(result,status){
 
-        $.post("/ackreceived/",{data:'dumydata'},function(result,status){
-
-        });
+          });  
+        } else{
+          alert("Flash not started");
+        };
       });
 
       socket.on('ackreceived',function (msg) {
@@ -208,23 +263,31 @@
         $("#bar").hide();
         allbuttonsblock(false); 
       });
+
+      socket.on('batterystatus',function(msg){
+        dataformatted=$.parseJSON(msg);
+        id=parseInt(dataformatted['nodeid']);
+        batteryvalue=parseInt(dataformatted['batterystatus'],16)/4096;
+        $("#battery"+id).html(batteryvalue.toFixed(2));
+      });
       
       $("#ping").click(function(){
-        for (var i = 1; i < 9; i++) {
-         $('#status'+i).html('Checking...');
+        for (var i = 0; i < listofnodes.length; i++) {
+         $('#status'+listofnodes[i]).html('Checking...');
+         $('#battery'+listofnodes[i]).html('');
         };
         $('#ping').prop("disabled",true);
         isclusteralive();
       });
 
       $("#listen").click(function(){
-        $.post( "/startlisten/",{data:'dummydata'});
+        $.post( "/startlisten/",{data:'dummydata',clusterid:clusterid});
         $("#stoplisten").show();
         $("#listen").hide();
       });
 
       $("#stoplisten").click(function(){
-        $.post("/stoplisten/");
+        $.post("/stoplisten/",{clusterid:clusterid});
         $("#listen").show();
         $("#stoplisten").hide();
       });
@@ -237,7 +300,7 @@
       var $form = $( this ),
           url = $form.attr('action');
       /* Send the data using post */
-      var posting = $.post( url, { imagenumberswitch: $('input[name=imagenumberswitch]:checked', '#formswitch').val()} );
+      var posting = $.post( url, { imagenumberswitch: $('input[name=imagenumberswitch]:checked', '#formswitch').val(),clusterid:clusterid} );
       var interval = setInterval(function() {
           {
            $('#baseimage').append('.');
@@ -302,6 +365,7 @@
 
         <div class="expandable-panel-content">
           <h4>Cluster Details:</h4>
+          <div id="clusternumbers"></div>
           <center>
             
           </br>

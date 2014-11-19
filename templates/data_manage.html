@@ -51,7 +51,7 @@
 				// alert(result);
 				jsondata=$.parseJSON(result);
 				// alert(jsondata.length);
-				var html = '<table style="width:100%"><tr><td>Node No.</td><td>Device ID.</td><td>Node Type</td><td>Properties</td>			<td>Battery Status</td><td></td></tr>';
+				var html = '<table style="width:100%" class="CSSTableGenerator"><tr><td>Node No.</td><td>Device ID.</td><td>Node Type</td><td>Properties</td>			<td>Battery Status</td><td></td></tr>';
 				for (var i=0;i<jsondata.length;i++){
 					html+='<tr>';
 					for (var j=1;j<6;j++){
@@ -73,7 +73,7 @@
 				// alert(result);
 				jsondatacluster=$.parseJSON(result);
 				// alert(jsondata.length);
-				var html = '<table style="width:100%"><tr><td>Cluster No.</td><td>Cluster Head No.</td><td>ClusterHead Device ID</td><td>List of Nodes</td><td>Gateway MAC</td><td>Gateway IP</td><td>Code Details Slot 1</td><td>Code Details Slot 2</td><td>Code Details Slot 3</td><td></td></tr>';
+				var html = '<table style="width:100%" class="CSSTableGenerator"><tr><td>Cluster No.</td><td>Cluster Head No.</td><td>ClusterHead Device ID</td><td>List of Nodes</td><td>Gateway MAC</td><td>Gateway IP</td><td>Code Details Slot 1</td><td>Code Details Slot 2</td><td>Code Details Slot 3</td><td></td></tr>';
 				for (var i=0;i<jsondatacluster.length;i++){
 					html+='<tr>';
 					for (var j=1;j<10;j++){

@@ -88,7 +88,7 @@ def on_connect(mosq, obj, rc):
 
 def on_message(mosq, obj, msg):
     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-    if msg.topic == "response/1":
+    if "response/" in msg.topic:
     	if "usbbasepath" in str(msg.payload):
     		# here send data to frontend
             sleep(2)
@@ -107,9 +107,10 @@ def on_message(mosq, obj, msg):
             templateData['consoledata']="Nothing yet"
             socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
         elif "batterystatus" in str(msg.payload):
-            print msg.payload            
+            status=json.loads(str(msg.payload).replace("batterystatus ",''))
+            socketio.emit('batterystatus',json.dumps(status),namespace="/listen")           
             
-    elif msg.topic == "listen/1":
+    elif "listen/" in msg.topic:
     	socketio.emit('my response',str(msg.payload),namespace="/listen")
     elif msg.topic == "register":
         database=json.loads(str(msg.payload))
@@ -124,6 +125,8 @@ def on_message(mosq, obj, msg):
             'listofnodes':listofnodes
         }
         mqttc.publish('register_response',json.dumps(registerresponse))
+        mqttc.subscribe("response/"+str(a[0][1]), 0)
+        mqttc.subscribe("listen/"+str(a[0][1]), 0)
         conn.close()
 
 def on_publish(mosq, obj, mid):
@@ -155,8 +158,6 @@ mqttc.connect(url.hostname, url.port)
 
 #Channels to subscribe
 mqttc.subscribe("register",0)
-mqttc.subscribe("response/1", 0)
-mqttc.subscribe("listen/1", 0)
 mqttc.loop_start()
 #App routes         
 @app.route('/')
@@ -167,14 +168,14 @@ def index():
 @app.route('/cluster_status/',methods=['POST'])
 def pingall():
     imagenum=request.form['data']
-    mqttc.publish("commands/1","ping "+str(imagenum))
+    mqttc.publish("commands/"+request.form['clusterid'],"ping "+str(imagenum))
     return "0"
 
 @app.route('/switch/', methods=['POST'])
 def switch():
     if request.method == "POST":
         imagenum = request.form['imagenumberswitch']
-        mqttc.publish("commands/1","switch "+str(imagenum))  
+        mqttc.publish("commands/"+request.form['clusterid'],"switch "+str(imagenum))  
         return "0"
 
 # Route that will process the file upload
@@ -194,15 +195,6 @@ def upload():
 
     global templateData
     templateData['flashstarted']="True"
-    f = open(imagepath)
-    datastring = f.read()
-
-    byteArray = bytes(datastring)
-
-    checksum = zlib.crc32(datastring, 0xFFFF)
-    print "Checksum is: " + str(checksum)
-
-    mqttc.publish("files/1", byteArray ,0)
     return redirect('/')
 
 @app.route('/uploads/<filename>')
@@ -213,13 +205,20 @@ def uploaded_file(filename):
 @app.route('/flashnode/', methods=['POST'])
 def flashnode():
     global slotnum
-    mqttc.publish("commands/1","flash "+str(slotnum))
+    f = open(imagepath)
+    datastring = f.read()
+    byteArray = bytes(datastring)
+    checksum = zlib.crc32(datastring, 0xFFFF)
+    print "Checksum is: " + str(checksum)
+    mqttc.publish("files/"+request.form['clusterid'], byteArray ,0)
+    mqttc.publish("commands/"+request.form['clusterid'], "checksum "+str(checksum))
+    mqttc.publish("commands/"+request.form['clusterid'],"flash "+str(slotnum))
     templateData['flashstarted']="False"
     return "0"
 
 @app.route('/startlisten/',methods=['POST'])
 def startlisten():
-    mqttc.publish("commands/1","startlisten")
+    mqttc.publish("commands/"+request.form['clusterid'],"startlisten")
     return "Listen Start Done"    
 
 @app.route('/savelog/',methods=['POST'])
@@ -234,13 +233,13 @@ def savedata():
 
 @app.route('/stoplisten/',methods=['POST'])
 def stoplisten():
-    mqttc.publish("commands/1","stoplisten")
+    mqttc.publish("commands/"+request.form['clusterid'],"stoplisten")
     return "0"
 
 
 @app.route('/ackreceived/',methods=['POST'])
 def ackreceived():
-    mqttc.publish("commands/1","ackreceived")
+    mqttc.publish("commands/"+request.form['clusterid'],"ackreceived")
     return "0"
 
 @app.route('/data_manage/')
@@ -309,16 +308,41 @@ def data_edit():
     conn.close()
     return "Done"
 
+@app.route('/clusterdetails/',methods=['POST'])
+def clusterdetails():
+	clusternumbers=[]
+	clusternum=request.form['data']
+	conn=sqlite3.connect('portal.db')
+	cursor=conn.execute("SELECT * FROM CLUSTERDETAILS")
+		
+	if clusternum == "dummydata":
+		first=cursor.fetchone()
+		clusternumbers.append(str(first[1]))
+		remaining=cursor.fetchall()
+		for i in remaining:
+			clusternumbers.append(str(i[1]))
+	else:
+		allvalues=cursor.fetchall()
+		for i in allvalues:
+			clusternumbers.append(str(i[1]))
+			if str(i[1]) == clusternum:
+				first=i
+				print first
+
+	datareturn={
+		'clusternumbers':','.join(clusternumbers),
+		'listofnodes':first[4],
+		'slot1':first[7],
+		'slot2':first[8],
+		'slot3':first[9]
+	}
+	conn.close()
+	return json.dumps(datareturn)
 
 #NOT REDUNDANT!
 @socketio.on('listen',namespace='/listen')
 def handle_message(message):
     print('received message: ' + message)
-
-@socketio.on('commands',namespace='/commands')
-def handle_message(message):
-    print('received message: ' + message)
-
 
 if __name__ == '__main__':
     socketio.run(app,host='0.0.0.0',port=8088)

@@ -1,0 +1,29 @@
+
+.formButton{
+  -moz-box-shadow: 0px 0px 14px 0px #71828a;
+  -webkit-box-shadow: 0px 0px 14px 0px #71828a;
+  box-shadow: 0px 0px 14px 0px #71828a;
+  background-color:#45a4c7;
+  -moz-border-radius:13px;
+  -webkit-border-radius:13px;
+  border-radius:13px;
+  border:2px solid #25a7c7;
+  display:inline-block;
+  cursor:pointer;
+  color:#ffffff;
+  font-family:arial;
+  font-size:14px;
+  padding: 0.6em 1em;
+  text-decoration:none;
+  text-shadow:0px 2px 7px #6d9cd1;
+  margin: 5px;
+}
+.formButton:hover {
+  background-color:#3caad6;
+  text-decoration: none;
+}
+.formButton:active {
+  position:relative;
+  top:1px;
+  text-decoration: none;
+}
