@@ -36,7 +36,8 @@ from datetime import datetime,date
 
 #Global variable declarations
 server_date = {
-'server_date': str(date.today())
+'server_date': str(date.today()),
+'email':"dummy"
 # 'server_date':'2014-11-21'
 }
 
@@ -46,7 +47,8 @@ templateData = {
     'baseimagedata':"BaseStation offline"+"\n",
     'flashstarted' : "False",
     'cluster_number':1,
-    'admin':"False"
+    'admin':"False",
+    'email':"dummy"
 }
 
 slotnum = 1
@@ -144,7 +146,7 @@ def on_message(mosq, obj, msg):
             status=json.loads(str(msg.payload).replace("flash ",''))
             socketio.emit('flash',json.dumps(status),namespace="/listen")
         elif "ackreceived" in str(msg.payload):
-            global templatedata
+            global templateData
             templateData['consoledata']="Nothing yet"
             socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
         elif "batterystatus" in str(msg.payload):
@@ -258,6 +260,21 @@ def bg_timer():
 
 bg_timer()
 
+def validate(value):
+    listofgroups=[]
+    groups_member=user.group_memberships
+    clusterreq=0
+    for gms in groups_member:
+        listofgroups.append(gms.group.name)
+    if "admins" in listofgroups:
+        clusterreq=value
+    elif "viewer1" in listofgroups:
+        clusterreq=1
+    elif "viewer2" in listofgroups:
+        clusterreq=2
+    return clusterreq
+
+
 #App routes         
 @app.route('/')
 def home():
@@ -339,6 +356,7 @@ def waiting():
         return redirect('/reserve')
     elif allowedtostay == True:
         print "Reservation Done!"
+        server_date['email']=str(user.email).split('@')[0]
         return render_template('waiting.html',**server_date)
         
 
@@ -362,16 +380,17 @@ def index():
     group_memberships = user.group_memberships
     for gms in group_memberships:
         for i in valid_groups_dash:
-            if gms.group.name == i:
+            if str(gms.group.name) == str(i):
                 entry_allowed = True
         if gms.group.name == "admins":
-            templatedata['admin']=True
+            templateData['admin']=True
         elif gms.group.name == "viewer1":
-            templatedata['cluster_number']=1
+            templateData['cluster_number']=1
         elif gms.group.name == "viewer2":
-            templatedata['cluster_number']=2
+            templateData['cluster_number']=2
     if entry_allowed == True:
         mqttc.publish("commands/1","usbbasepath")
+        templateData['email']=str(user.email).split('@')[0]
         return render_template('dashboard.html',**templateData)
         
     else:
@@ -384,7 +403,8 @@ def index():
 @groups_required(valid_groups_dash,all = False)
 def pingall():
     imagenum=request.form['data']
-    mqttc.publish("commands/"+request.form['clusterid'],"ping "+str(imagenum))
+
+    mqttc.publish("commands/"+validate(request.form['clusterid']),"ping "+str(imagenum))
     return "0"
 
 @app.route('/switch/', methods=['POST'])
@@ -392,7 +412,7 @@ def pingall():
 def switch():
     if request.method == "POST":
         imagenum = request.form['imagenumberswitch']
-        mqttc.publish("commands/"+request.form['clusterid'],"switch "+str(imagenum))  
+        mqttc.publish("commands/"+validate(request.form['clusterid']),"switch "+str(imagenum))  
         return "0"
 
 # Route that will process the file upload
@@ -430,16 +450,17 @@ def flashnode():
     byteArray = bytes(datastring)
     checksum = zlib.crc32(datastring, 0xFFFF)
     print "Checksum is: " + str(checksum)
-    mqttc.publish("files/"+request.form['clusterid'], byteArray ,0)
-    mqttc.publish("commands/"+request.form['clusterid'], "checksum "+str(checksum))
-    mqttc.publish("commands/"+request.form['clusterid'],"flash "+str(slotnum))
+    clusterreq=validate(request.form['clusterid'])
+    mqttc.publish("files/"+clusterreq, byteArray ,0)
+    mqttc.publish("commands/"+clusterreq, "checksum "+str(checksum))
+    mqttc.publish("commands/"+clusterreq,"flash "+str(slotnum))
     templateData['flashstarted']="False"
     return "0"
 
 @app.route('/startlisten/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def startlisten():
-    mqttc.publish("commands/"+request.form['clusterid'],"startlisten")
+    mqttc.publish("commands/"+validate(request.form['clusterid']),"startlisten")
     return "Listen Start Done"    
 
 @app.route('/savelog/',methods=['POST'])
@@ -456,14 +477,14 @@ def savedata():
 @app.route('/stoplisten/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def stoplisten():
-    mqttc.publish("commands/"+request.form['clusterid'],"stoplisten")
+    mqttc.publish("commands/"+validate(request.form['clusterid']),"stoplisten")
     return "0"
 
 
 @app.route('/ackreceived/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def ackreceived():
-    mqttc.publish("commands/"+request.form['clusterid'],"ackreceived")
+    mqttc.publish("commands/"+validate(request.form['clusterid']),"ackreceived")
     return "0"
 
 @app.route('/data_manage/')

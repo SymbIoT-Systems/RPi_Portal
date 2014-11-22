@@ -6,13 +6,26 @@ h2, p, ol, ul, li {
   font-weight: bold;
 }
 
-h1 {
-    color:white;
+html,body {
+        height: 100%;
+        font-family:"Open Sans";
+      }
+
+h1{
+  font-weight: 500;
+  font-size: 31px;
+  text-align: center;
 }
+h2{
+  font-family:"Open Sans";
+  font-weight: 300;
+  font-size: 21px;
+}
+
 body  {
     /*background-image: url('static/background.png');*/
-    background-image: url('background.jpg');
-    background-color: #cccccc;
+    /*background-image: url('background.jpg');*/
+    background-color: white;
     background-size: 100%;
     /*background-repeat: no-repeat;*/
     }
@@ -24,6 +37,14 @@ body  {
   vertical-align: middle;
 }
 
+.dash_container{
+  display: block;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  background-color: white;
+}
 /*COLLAPSIBLE PANELS*/
 
 .expandable-panel {

@@ -67,6 +67,8 @@
             callbacks: {
               stop: function() {
                 alert("It's your slot!")
+                // Allow user to go to dashboard
+            $('#dash_button').prop('disabled',false);
               }
             }
         });
@@ -188,7 +190,7 @@
       <button id ="dash_button" class="formButton" onclick="window.location.href='/dashboard'">Go to Dashboard</button>
       <button id ="res_button" class="formButton" onclick="window.location.href='/reserve'">Reserve another slot</button>
       <button id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
-      <div class="clock" style="margin:2em; margin-left:100px" id="clock"></div>
+      <div class="clock" style="margin:2em; margin-left:100px" id="clock">Before your slot opens up:</div>
       </div>
       </center>     
       

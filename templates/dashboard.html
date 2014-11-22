@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300italic,300,400italic,400,600italic,600,700italic,700,800italic,800" rel="stylesheet" type="text/css">
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
           rel="stylesheet">
     <!-- Local stylesheet -->
@@ -40,7 +40,7 @@
         listofnodes = dataformatted['listofnodes'].split(",");
         clusterlist = dataformatted['clusternumbers'].split(",");
         
-        var titledata = [['NodeNum', 'Status','']];
+        var titledata = [['NodeNum', 'Status','Battery']];
         var html = '<table id="table1" class="CSSTableGenerator"><tbody>';
         for (var i = 0, rowNum = listofnodes.length + 1 ; i < rowNum; ++i) {
           html += '<tr>';
@@ -63,6 +63,8 @@
         html += '</tbody></table>';
         //$(html).appendTo('#table1');
         $('#table1').replaceWith(html);
+        panelinit();
+        resetpanels();
 
         $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
         //$("#selectcluster option:selected").val(value);
@@ -76,7 +78,7 @@
         listofnodes = dataformatted['listofnodes'].split(",");
         clusterlist = dataformatted['clusternumbers'].split(",");
         
-        var titledata = [['NodeNum', 'Status','']];
+        var titledata = [['NodeNum', 'Status','Battery']];
         var html = '<table><tbody>';
         for (var i = 0, rowNum = listofnodes.length + 1 ; i < rowNum; ++i) {
           html += '<tr>';
@@ -98,7 +100,9 @@
           }
         html += '</tbody></table>';
         $(html).appendTo('#table1');
-
+          panelinit();
+          resetpanels();
+          
         var htmlcluster='<select id="selectcluster" onchange="tableedit()">';
         for (var i = 0; i < clusterlist.length; i++) {
           htmlcluster+='<option value="'+clusterlist[i]+'">'+clusterlist[i]+'</option>';
@@ -107,12 +111,13 @@
         $(htmlcluster).appendTo('#clusternumbers');
         clusterid=$("#selectcluster option:selected").val();
         $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
-
+         if(("{{admin}}".indexOf("False"))>=0){
+          $('#selectcluster').val("{{cluster_number}}");
+        $('#selectcluster').hide();
+        alert("Your cluster is {{cluster_number}}");
+      }
       });
 
-      if(("{{admin}}".indexOf("False"))>=0){
-        $('#selectcluster option:selected').
-      }
       //Flash Initiated
       // if ($("#consolebox").text().indexOf("Flash Initiated")>=0)
       if (("{{flashstarted}}").indexOf("True")>=0) 
@@ -329,9 +334,10 @@
   </head>
 
   <body>
-   <div class="container">
+   <div class="container dash-container">
       <div class="header">
         <h1 style ="color:ffffff" background-color="#cccccc">Edge Router Control Panel</h1>
+        <center><h2>Welcome {{email}} !</h2></center>
       </div>
       <hr/>
       

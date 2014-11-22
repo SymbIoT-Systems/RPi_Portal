@@ -80,6 +80,18 @@ print valid_groups
 def home():
 	if current_user.is_authenticated():
 		print user.email
+		listofgroups=[]
+		groups_member=user.group_memberships
+		for gms in groups_member:
+			listofgroups.append(gms.group.name)
+		print listofgroups
+		if "admins" in listofgroups:
+			print "isadmin"
+		elif "viewer1" in listofgroups:
+			print "viewer1"
+		elif "viewer2" in listofgroups:
+			print "viewer2"
+
 		return render_template('index.html')
 
 	else:
