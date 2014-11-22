@@ -40,6 +40,24 @@
 			$('#edit_gateway_ip').val(jsondatacluster[name-1][6]);
 		}
 
+		function deleteclick(name){
+			//Promt for yes and no
+			//if yes then the following code
+			$.post('/data_delete/',{idno:name,deletewhat:'node'},function(result,status){
+				getnodedata();
+				alert(result);
+			});
+		}
+
+		function deleteclickcluster(name){
+			//Promt for yes and no
+			//if yes then the following code
+			$.post('/data_delete/',{idno:name,deletewhat:'cluster'},function(result,status){
+				getclusterdata();
+				alert(result);
+			});
+		}		
+
 	$(document).ready(function(){
 		// $("#data_add_form").hide();
 		// $("#editform").hide();
@@ -57,7 +75,7 @@
 					for (var j=1;j<6;j++){
 						html+='<td>'+jsondata[i][j]+'</td>';
 					}
-					html+='<td><a href="#modal-node-edit"><button onclick="editclick('+jsondata[i][0]+');">Edit</button></a></td></tr>';
+					html+='<td><a href="#modal-node-edit"><button onclick="editclick('+jsondata[i][0]+');">Edit</button></a><a href="#modal-node-edit"><button onclick="deleteclick('+jsondata[i][0]+');">Delete</button></a></td></tr>';
 
 				}
 				html+='</table>';
@@ -79,7 +97,7 @@
 					for (var j=1;j<10;j++){
 						html+='<td>'+jsondatacluster[i][j]+'</td>';
 					}
-					html+='<td><a href="#modal-cluster-edit"><button onclick="editclickcluster('+jsondatacluster[i][0]+');">Edit</button></a></td></tr>';
+					html+='<td><a href="#modal-cluster-edit"><button onclick="editclickcluster('+jsondatacluster[i][0]+');">Edit</button></a><a href="#modal-cluster-edit"><button onclick="deleteclickcluster('+jsondatacluster[i][0]+');">Delete</button></a></td></tr>';
 
 				}
 				html+='</table>';

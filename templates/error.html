@@ -3,23 +3,41 @@
   <head>
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300italic,300,400italic,400,600italic,600,700italic,700,800italic,800" rel="stylesheet" type="text/css">
     <link rel="stylesheet" type="text/css" href="/static/storm.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function(){
+      setInterval(function(){
+        // alert("Redirecting to login");
+        window.location.href="/login";
+      }
+        ,14000);
+
+    });
+
+
+
+    </script>
   </head>
+
+
   <body>
    
    
   <div class="container reserve-container">
     <div class="reserve-box">
       <div class="header">
-        <center><h1>Welcome to the Testbed!</h1></center>
+        <center><h1>Gotcha!!</h1>
+        <img src="http://4.bp.blogspot.com/_Gmdku9sqQNI/S7wrvi6L7EI/AAAAAAAAAGY/hoUs6VVfrL0/s320/Calvin&Hobbes.png_thumb.jpg">
+        </center>
 
       </div>
       <center>
-        <img src="http://3.bp.blogspot.com/-ScQsK1ew_DU/TuQ5BqLnikI/AAAAAAAAAAc/rqfEEZpPljI/s1600/telosb.jpg" class="resize">
-      <div>
         
-        <button class="formButton" title="Login" onclick="window.location.href='waiting'">Log in</button>
-        or
-       <button class="formButton" title="Register" onclick="window.location.href='register'">Register</button>
+      <div>
+        {{error}}
+        
+      </br>
+    </br> 
        </div>  
       </center>
       
