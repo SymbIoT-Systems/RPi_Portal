@@ -1,6 +1,11 @@
  html,body {
         height: 100%;
         font-family:"Open Sans";
+        background-color: #F0F4F8;
+        line-height: 1.428571429;
+        color: #333;
+        margin:0;
+        display:block;
       }
 
 @media (max-width: 767px) {
@@ -8,6 +13,11 @@
   body {
     padding: 0 4px;
   }
+}
+*,*:before,*:after{
+-webkit-box-sizing: border-box;
+-moz-box-sizing: border-box;
+  box-sizing:border-box;
 }
 
 @media screen and (orientation: portrait) {
@@ -28,13 +38,21 @@ h1{
   font-weight: 500;
   font-size: 31px;
   text-align: center;
+  margin-bottom: 45px;
 }
 h2{
   font-family:"Open Sans";
   font-weight: 300;
   font-size: 21px;
+  margin-bottom: 10px;
 }
 
+h6{
+  font-family:"Open Sans";
+  font-weight: 600;
+  font-size: 15px;
+  margin:0px;
+}
 body,
 div,
 p,
@@ -43,7 +61,7 @@ label {
   font-family: "Open Sans";
   font-size: 14px;
   font-weight: 400;
-  color: #484848;
+  /*color: #484848;*/
 }
 a {
   color: #0072dd;
@@ -315,7 +333,7 @@ p {
 .reserve-box{
   /*background-color: #f6f6f6;*/
   padding: 0;
-  margin-top: 100px;
+  margin-top: 50px;
   box-shadow: 0 0px 3px 1px rgba(0, 0, 0, 0.1);
   border: 1px solid #cacaca;
   border-radius: 3px;
@@ -323,17 +341,18 @@ p {
   background-color: white;
   margin-left: auto;
   margin-right: auto;
+  margin-bottom: 50px;
 }
 
 .formButton{
   -moz-box-shadow: 0px 0px 14px 0px #71828a;
   -webkit-box-shadow: 0px 0px 14px 0px #71828a;
   box-shadow: 0px 0px 14px 0px #71828a;
-  background-color:#45a4c7;
+  background-color:#3885A1; 
   -moz-border-radius:13px;
   -webkit-border-radius:13px;
   border-radius:4px;
-  border:2px solid #25a7c7;
+  border:2px solid #275D71;
   display:inline-block;
   cursor:pointer;
   color:#ffffff;
@@ -343,10 +362,11 @@ p {
   text-decoration:none;
   text-shadow:0px 2px 7px #6d9cd1;
   margin: 5px;
-  margin-bottom: 2em;
+  margin-bottom: 1.2em;
+  min-width: 90px;
 }
 .formButton:hover {
-  background-color:#3caad6;
+  background-color:#4C91AA;
   text-decoration: none;
 }
 .formButton:active {
@@ -383,6 +403,45 @@ p {
   /*position:relative;*/
   top:1px;
   text-decoration: none;
+}
+
+.legendButton{
+  background-color:#45a4c7;
+  -moz-border-radius:13px;
+  -webkit-border-radius:13px;
+  border-radius:13px;
+  border:2px solid #25a7c7;
+  display:inline-block;
+  cursor:pointer;
+  color:#ffffff;
+  text-decoration:none;
+  margin: 5px;
+  
+  height:13px;
+}
+.blue{
+  background-color:#45a4c7;
+  /*rgb(60, 170, 214)*/
+  border:2px solid #25a7c7;
+  /*rgb(37,167,199)*/
+}
+.green{
+  background-color:#04CB0E;
+  /*rgb(4,203,14)*/
+  border:2px solid #04800E;
+  /*rgb(4,128,14)*/
+}
+.red{
+  background-color:#FA5858;
+  /*rgb(250,88,88)*/
+  border:2px solid #8A0808;
+  /*rgb(138,8,8)*/
+}
+.orange{
+  background-color:#F7A41F;
+  /*rgb(247,164,31)*/
+  border:2px solid #F7921F; 
+  /*rgb(24,146,31)*/
 }
 button:focus {
     outline: none;

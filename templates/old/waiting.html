@@ -29,22 +29,10 @@
         next_slot = data_formatted['next_slot_delta'];
 
         if (next_slot == "90000"){
-            var html = "<div id =\"clkmsg\"> Choose a different cluster! </div>";
-            $('#clkmsg').replaceWith(html);
-
-            alert("You do not have a slot today in this cluster");
-
-            $('#clk_display').css('visibility','hidden'); 
-            $('#dash_button').prop('disabled',true);
-            $('#dash_button').css('background-color','#FA5858');
-            $('#dash_button').css('border','2px solid #8A0808');
-            
-
-
+        
+          alert("You do not have a slot today in this cluster");
       }else{
-        $('#clk_display').css('visibility','visible');
-        var html = "<div id =\"clkmsg\">You can proceed to dashboard in:</div>";
-        $('#clkmsg').replaceWith(html);
+        $('#clock').show();
         clock.setTime(next_slot);
         clock.setCountdown(true);
         clock.start();
@@ -69,25 +57,19 @@
 
 
     $(document).ready(function(){
-      //Dash button red and disabled
+
     $('#dash_button').prop('disabled',true);
-    $('#dash_button').css('background-color','#FA5858');
-    $('#dash_button').css('border','2px solid #8A0808');
-    $('#clk_display').css('visibility','hidden');    
+    $('#clock').hide();            
 
       clock = $('.clock').FlipClock({
             clockFace: 'HourlyCounter',
             autoStart: false,
             callbacks: {
               stop: function() {
-                alert("It's your slot! You may proceed to the dashboard.")
-                html = "<div id =\"clkmsg\">It's your slot! You may proceed to the dashboard.</div>"
-                $('#clkmsg').replaceWith(html);
+                alert("It's your slot!")
                 // Allow user to go to dashboard
             $('#dash_button').prop('disabled',false);
-            $('#dash_button').css('background-color','rgb(4,203,14)');
-            $('#dash_button').css('border','2px solid rgb(4,128,14)');
-            }
+              }
             }
         });
          
@@ -105,21 +87,11 @@
 
 
         if (next_slot == "90000"){
-          
-          $('#clk_display').css('visibility','hidden'); 
-          var html = "<div id =\"clkmsg\">Choose a different cluster!</div>";
-          $('#clkmsg').replaceWith(html);
-
+          $('#clock').hide();
           alert("You do not have a slot today in this cluster");
-          $('#dash_button').prop('disabled',true);
-          $('#dash_button').css('background-color','#FA5858');
-          $('#dash_button').css('border','2px solid #8A0808');
-          
 
       }else{
-        $('#clk_display').css('visibility','visible');
-        var html = "<div id =\"clkmsg\">You can proceed to dashboard in:</div>";
-        $('#clkmsg').replaceWith(html);
+        $('#clock').show();
         clock.setTime(next_slot);
         clock.setCountdown(true);
         clock.start();
@@ -195,7 +167,6 @@
       
    <div class="header">
         <h1>Reservation Manager</h1>
-        <h6 style="float:right">Logged in as: {{email}}</h6>
         <h2>View Reservations:</h2>
    </div>
       
@@ -207,31 +178,20 @@
         
         <div id="select_cluster">Choose a cluster: </div> 
         <div id ="node_list">List of Nodes in cluster: </div>
-      </br>
-        </br>
+
         </br>
         <center>
-        <span id ="res_legend">
-        <button class="legendButton blue" id = "blue"></button>Free Slot
-        <button class="legendButton green" id = "green"></button>Your Slot
-        <button class="legendButton red" id = "red"></button>Unavailable Slot
-      </span>
-        
-      </br>
         <div id="res_table">(Begin Time - End Time in 24hr format)</div>
-
       </br>
       
       <div>
         
       </br>
-      <div id ="clkmsg">You can proceed to dashboard in:</div></br></br>
-      <div id="clk_display"><div class="clock" style="margin:2em; margin-left:100px" id="clock"></div></div>
       <button id ="dash_button" class="formButton" onclick="window.location.href='/dashboard'">Go to Dashboard</button>
       <button id ="res_button" class="formButton" onclick="window.location.href='/reserve'">Reserve another slot</button>
       <button id ="del_res_button" class="formButton" onclick="window.location.href='/delete_slot'">Delete slots</button>
       <button id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
-      
+      <div class="clock" style="margin:2em; margin-left:100px" id="clock">Before your slot opens up:</div>
       </div>
       </center>     
       

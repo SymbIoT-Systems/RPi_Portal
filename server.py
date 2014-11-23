@@ -249,6 +249,14 @@ def check_reservations():
                         viewer_group2.add_account(everyelement[1])
                     except:
                         print "Already exists"
+                try:
+                    group_memberships = user.group_memberships
+    
+                    for gms in group_memberships:
+                        if 'waiting' in gms.group.name:
+                            gms.delete()
+                except:
+                    print "Cannot delete error"
 
     conn.close()
 
@@ -330,9 +338,9 @@ def reserve_slot():
     date=request.form['date']
     clusternumber=request.form['clusternumber']
     slots=request.form['slots']
-    conn=sqlite3.connect('portal.db')
     if slots == "":
         return "Reservation not complete"
+    conn=sqlite3.connect('portal.db')
     emailaddress=unicodedata.normalize('NFKD', user.email).encode('ascii','ignore')
     conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\')')
     conn.commit()
@@ -343,6 +351,31 @@ def reserve_slot():
         print "Already in group"
     check_reservations()
     return "Reservation Done!"
+
+@app.route('/delete_slot/',methods=['POST'])
+@login_required
+def delete_slot():
+    date=request.form['date']
+    clusternumber=request.form['clusternumber']
+    slots=request.form['slots']
+    if slots=="":
+        return "Please choose a slot to delete"
+    conn=sqlite3.connect('portal.db')
+    cursor=conn.execute('SELECT * FROM RESERVATIONS WHERE USEREMAIL=\''+str(user.email)+'\' AND DATE_RESERVED=\''+date+'\' AND CLUSTERNUMBER=\''+clusternumber+'\'')
+    allcursor=cursor.fetchall()
+    slotsdelete=slots.split(',')
+    for everyelement in allcursor:
+        slotsnew=[]
+        slotsreserved=everyelement[3].split(',')
+        for sr in slotsreserved:
+            for sd in slotsdelete:
+                if str(sr) == str(sd):
+                    pass
+                else:
+                    slotsnew.append(sr)
+        conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\''+','.join(slotsnew)+'\' WHERE ID=\''+everyelement[0]+'\'')
+    conn.commit()
+    conn.close()
 
 @app.route('/waiting')
 @login_required
@@ -404,7 +437,7 @@ def index():
 def pingall():
     imagenum=request.form['data']
 
-    mqttc.publish("commands/"+validate(request.form['clusterid']),"ping "+str(imagenum))
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"ping "+str(imagenum))
     return "0"
 
 @app.route('/switch/', methods=['POST'])
@@ -412,7 +445,7 @@ def pingall():
 def switch():
     if request.method == "POST":
         imagenum = request.form['imagenumberswitch']
-        mqttc.publish("commands/"+validate(request.form['clusterid']),"switch "+str(imagenum))  
+        mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"switch "+str(imagenum))  
         return "0"
 
 # Route that will process the file upload
@@ -450,7 +483,7 @@ def flashnode():
     byteArray = bytes(datastring)
     checksum = zlib.crc32(datastring, 0xFFFF)
     print "Checksum is: " + str(checksum)
-    clusterreq=validate(request.form['clusterid'])
+    clusterreq=str(validate(request.form['clusterid']))
     mqttc.publish("files/"+clusterreq, byteArray ,0)
     mqttc.publish("commands/"+clusterreq, "checksum "+str(checksum))
     mqttc.publish("commands/"+clusterreq,"flash "+str(slotnum))
@@ -460,7 +493,7 @@ def flashnode():
 @app.route('/startlisten/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def startlisten():
-    mqttc.publish("commands/"+validate(request.form['clusterid']),"startlisten")
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"startlisten")
     return "Listen Start Done"    
 
 @app.route('/savelog/',methods=['POST'])
@@ -477,14 +510,14 @@ def savedata():
 @app.route('/stoplisten/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def stoplisten():
-    mqttc.publish("commands/"+validate(request.form['clusterid']),"stoplisten")
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"stoplisten")
     return "0"
 
 
 @app.route('/ackreceived/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def ackreceived():
-    mqttc.publish("commands/"+validate(request.form['clusterid']),"ackreceived")
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"ackreceived")
     return "0"
 
 @app.route('/data_manage/')
@@ -564,9 +597,9 @@ def data_delete():
     idno=request.form['idno']
     deletewhat=request.form['deletewhat']
     if deletewhat == "node":
-        conn.execute("DELETE * FROM NODEDETAILS WHERE ID=\'"+idno+"\'")
+        conn.execute("DELETE FROM NODEDETAILS WHERE ID=\'"+idno+"\'")
     elif deletewhat == "cluster":
-        conn.execute("DELETE * FROM CLUSTERDETAILS WHERE ID=\'"+idno+"\'")
+        conn.execute("DELETE FROM CLUSTERDETAILS WHERE ID=\'"+idno+"\'")
     conn.commit()
     conn.close()
     return "Data Entry Deleted"

@@ -8,8 +8,8 @@
 
 		<h1>Database Management</h1>
 
-		<!-- <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
-          rel="stylesheet"> -->
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet">
 		<link rel="stylesheet" type="text/css" href="/static/style.css">
 		<link rel="stylesheet" type="text/css" href="/static/modal.css">
 
@@ -45,6 +45,15 @@
 			//if yes then the following code
 			$.post('/data_delete/',{idno:name,deletewhat:'node'},function(result,status){
 				getnodedata();
+				alert(result);
+			});
+		}
+
+		function deleteclickcluster(name){
+			//Promt for yes and no
+			//if yes then the following code
+			$.post('/data_delete/',{idno:name,deletewhat:'cluster'},function(result,status){
+				getclusterdata();
 				alert(result);
 			});
 		}		
@@ -96,15 +105,6 @@
     			panelinit();
     			resetpanels();
 
-			});
-		}
-
-		function deleteclickcluster(name){
-			//Promt for yes and no
-			//if yes then the following code
-			$.post('/data_delete/',{idno:name,deletewhat:'cluster'},function(result,status){
-				getclusterdata();
-				alert(result);
 			});
 		}
 
