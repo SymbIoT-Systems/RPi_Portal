@@ -118,7 +118,8 @@ if (file_status == False):
             USEREMAIL TEXT NOT NULL,
             DATE_RESERVED TEXT NOT NULL,
             SLOTNUMBERS TEXT NOT NULL,
-            CLUSTERNUMBER TEXT NOT NULL);''')
+            CLUSTERNUMBER TEXT NOT NULL,
+            USEROBJECT TEXT NOT NULL);''')
     conn.close()
 
     
@@ -342,7 +343,7 @@ def reserve_slot():
         return "Reservation not complete"
     conn=sqlite3.connect('portal.db')
     emailaddress=unicodedata.normalize('NFKD', user.email).encode('ascii','ignore')
-    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\')')
+    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,USEROBJECT) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',\''+str(user)+'\')')
     conn.commit()
     conn.close()
     try:
@@ -376,6 +377,7 @@ def delete_slot():
         conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\''+','.join(slotsnew)+'\' WHERE ID=\''+everyelement[0]+'\'')
     conn.commit()
     conn.close()
+    return "Slot deleted"
 
 @app.route('/waiting')
 @login_required

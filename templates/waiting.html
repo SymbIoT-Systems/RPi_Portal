@@ -60,13 +60,45 @@
           // Green
           $('#slot'+slotsforme[i]).css('background-color','rgb(4,203,14)');
           $('#slot'+slotsforme[i]).css('border','2px solid rgb(4,128,14)');
-          $('#slot'+slotsforme[i]).prop('disabled',true);
+          //define onclick for green
         }
         var html='<div id ="node_list">List of Nodes in cluster: '+list_of_nodes+'</div>';
         $('#node_list').replaceWith(html);
       });
   }
 
+    function ongreenclick(value){
+      // Check if ORANGE
+      if(($('#slot'+value).css('background-color')) == 'rgb(247, 164, 31)'){
+      // Set Green 
+      $('#slot'+value).css('background-color','rgb(4,203,14)');
+      $('#slot'+value).css('border','2px solid rgb(4,128,14)');
+      }
+      // If Green
+      else if (($('#slot'+value).css('background-color')) == 'rgb(4, 203, 14)'){
+        // Toggle to orange
+        $('#slot'+value).css('background-color','rgb(247,164,31)');
+        $('#slot'+value).css('border','2px solid rgb(24,146,31)');
+      }
+    }
+
+    function deleteslot(){
+      var slotstodelete=[];
+
+      for(var i=0;i<25;++i){
+        if (($('#slot'+i).css('background-color')) == 'rgb(247,164, 31)'){
+          slotstodelete.push(i);
+        }
+      }
+      if(slotstodelete.length==0){
+        alert("Select a slot to delete");
+      }else{
+        $('#del_res_button').prop('disabled',true);
+      $.post('/delete_slot/',{date:$('#res_date').val(),clusternumber:$('#selectlist_cluster option:selected').val(),slots:slotstodelete+""},function(result,status){
+          window.location.href="/waiting"
+        });
+      }
+    }
 
     $(document).ready(function(){
       //Dash button red and disabled
@@ -229,7 +261,7 @@
       <div id="clk_display"><div class="clock" style="margin:2em; margin-left:100px" id="clock"></div></div>
       <button id ="dash_button" class="formButton" onclick="window.location.href='/dashboard'">Go to Dashboard</button>
       <button id ="res_button" class="formButton" onclick="window.location.href='/reserve'">Reserve another slot</button>
-      <button id ="del_res_button" class="formButton" onclick="window.location.href='/delete_slot'">Delete slots</button>
+      <button id ="del_res_button" class="formButton" onclick="deleteslot()">Delete slots</button>
       <button id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
       
       </div>
