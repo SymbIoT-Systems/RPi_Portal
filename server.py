@@ -119,7 +119,7 @@ if (file_status == False):
             DATE_RESERVED TEXT NOT NULL,
             SLOTNUMBERS TEXT NOT NULL,
             CLUSTERNUMBER TEXT NOT NULL,
-            USEROBJECT TEXT NOT NULL);''')
+            INVIEWER TEXT NOT NULL);''')
     conn.close()
 
     
@@ -238,26 +238,46 @@ def check_reservations():
     for everyelement in allcursor:
         slots=everyelement[3].split(',')
         for slot in slots:
-            if slot==str((datetime.now().hour)+1):#In hours
+            if slot == str(datetime.now().hour):
+                print "Delete slot"
+                if everyelement[5] == "True":
+                    everyelement[5] = "False"
+                    accounts = directory.accounts.search({'email':everyelement[1]})
+                    for acc in accounts:
+                        group_memberships=acc.group_memberships
+                        for gms in group_memberships:
+                            if "viewer" in gms.group.name:
+                                gms.delete()
+                elif everyelement[5] == "False":
+                    print "Already deleted" 
+
+            elif slot==str((datetime.now().hour)+1):#In hours
                 print "My slot"
-                if everyelement[4] == "1":
+                if everyelement[5] =="False":
+                    everyelement[5] = "True"
+                    if everyelement[4] == "1":
+	                    try:
+	                        viewer_group1.add_account(everyelement[1])
+	                    except:
+	                        print "Already exists"
+                    elif everyelement[4] == "2":
+	                    try:
+	                        viewer_group2.add_account(everyelement[1])
+	                    except:
+	                        print "Already exists"
+	           
+               #delete membership for group waiting
                     try:
-                        viewer_group1.add_account(everyelement[1])
+                        accounts=directory.accounts.search({'email':everyelement[1]})
+                        for acc in accounts:
+                            group_memberships=acc.group_memberships
+                            for gms in group_memberships:
+	                           if 'waiting' in gms.group.name:
+	                               gms.delete()
                     except:
-                        print "Already exists"
-                elif everyelement[4] == "2":
-                    try:
-                        viewer_group2.add_account(everyelement[1])
-                    except:
-                        print "Already exists"
-                try:
-                    group_memberships = user.group_memberships
-    
-                    for gms in group_memberships:
-                        if 'waiting' in gms.group.name:
-                            gms.delete()
-                except:
-                    print "Cannot delete error"
+                        print "Cannot delete error"
+                elif everyelement[5] == "True":
+	            	print "Already in group"
 
     conn.close()
 
@@ -343,7 +363,7 @@ def reserve_slot():
         return "Reservation not complete"
     conn=sqlite3.connect('portal.db')
     emailaddress=unicodedata.normalize('NFKD', user.email).encode('ascii','ignore')
-    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,USEROBJECT) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',\''+str(user)+'\')')
+    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,INVIEWER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',"False")')
     conn.commit()
     conn.close()
     try:
@@ -398,12 +418,12 @@ def waiting():
 @app.route('/signout')
 def logout():
     print "Logging out!"
-    group_memberships = user.group_memberships
+    # group_memberships = user.group_memberships
     
-    for gms in group_memberships:
-        # print gms.account.given_name
-        if 'viewer' in gms.group.name:
-            gms.delete()
+    # for gms in group_memberships:
+    #     # print gms.account.given_name
+    #     if 'viewer' in gms.group.name:
+    #         gms.delete()
 
     return redirect('/logout')
 
@@ -659,6 +679,8 @@ def get_registration():
     clusternum=request.form['cluster_number']
     whichpage = request.form['pagename']
     conn=sqlite3.connect('portal.db')
+    print date
+    print clusternum
     cursor=conn.execute('SELECT * FROM RESERVATIONS WHERE DATE_RESERVED=\''+date+'\' AND CLUSTERNUMBER=\''+clusternum+'\'')
     allcursor=cursor.fetchall()
     slotsreserved=[]
@@ -666,12 +688,14 @@ def get_registration():
     
     min_slot = 25
     delta = 0
-
+    print allcursor
     if whichpage == 'waiting':
         for everyelement in allcursor:
-            if user.email == everyelement[1]:
+            if str(user.email) == everyelement[1]:
                 # Check for next valid slot for this user
                 list_el= everyelement[3].split(',')
+                print "this is list"
+                print list_el
                 for i in list_el:
                     if ((int(i)- datetime.now().hour) >= 1):
                         if min_slot > int(i):

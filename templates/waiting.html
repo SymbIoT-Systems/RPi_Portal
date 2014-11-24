@@ -9,7 +9,6 @@
   <script src="/static/flipclock.min.js"></script>
   <script>
 
-
   function res_date_chosen(){
     // alert($('#res_date').val());
 
@@ -61,26 +60,12 @@
           $('#slot'+slotsforme[i]).css('background-color','rgb(4,203,14)');
           $('#slot'+slotsforme[i]).css('border','2px solid rgb(4,128,14)');
           //define onclick for green
+          $('#slot'+slotsforme[i]).bind('click',ongreenclick(slotsforme[i]),false);
         }
         var html='<div id ="node_list">List of Nodes in cluster: '+list_of_nodes+'</div>';
         $('#node_list').replaceWith(html);
       });
   }
-
-    function ongreenclick(value){
-      // Check if ORANGE
-      if(($('#slot'+value).css('background-color')) == 'rgb(247, 164, 31)'){
-      // Set Green 
-      $('#slot'+value).css('background-color','rgb(4,203,14)');
-      $('#slot'+value).css('border','2px solid rgb(4,128,14)');
-      }
-      // If Green
-      else if (($('#slot'+value).css('background-color')) == 'rgb(4, 203, 14)'){
-        // Toggle to orange
-        $('#slot'+value).css('background-color','rgb(247,164,31)');
-        $('#slot'+value).css('border','2px solid rgb(24,146,31)');
-      }
-    }
 
     function deleteslot(){
       var slotstodelete=[];
@@ -101,6 +86,23 @@
     }
 
     $(document).ready(function(){
+
+      function ongreenclick(value){
+      // Check if ORANGE
+      alert(value);
+      if(($('#slot'+value).css('background-color')) == 'rgb(247, 164, 31)'){
+      // Set Green 
+      $('#slot'+value).css('background-color','rgb(4,203,14)');
+      $('#slot'+value).css('border','2px solid rgb(4,128,14)');
+      }
+      // If Green
+      else if (($('#slot'+value).css('background-color')) == 'rgb(4, 203, 14)'){
+        // Toggle to orange
+        $('#slot'+value).css('background-color','rgb(247,164,31)');
+        $('#slot'+value).css('border','2px solid rgb(247,146,31)');
+      }
+    }
+
       //Dash button red and disabled
     $('#dash_button').prop('disabled',true);
     $('#dash_button').css('background-color','#FA5858');
@@ -169,14 +171,12 @@
           // RED
           $('#slot'+blocked_slots[i]).css('background-color','#FA5858');
           $('#slot'+blocked_slots[i]).css('border','2px solid #8A0808');
-          $('#slot'+blocked_slots[i]).prop('disabled',true);
         }
         for (var i=0; i< slotsforme.length; i++){
           // Green
           $('#slot'+slotsforme[i]).css('background-color','rgb(4,203,14)');
           $('#slot'+slotsforme[i]).css('border','2px solid rgb(4,128,14)');
-          $('#slot'+slotsforme[i]).prop('disabled',true);
-
+          $('#slot'+slotsforme[i]).bind('click',ongreenclick(slotsforme[i]),false);
         }
       });
       

@@ -134,7 +134,10 @@ def reserve():
 @login_required
 def res_done():
 	print "Reservation Done!"
-
+	accounts=directory.accounts.search({'email':'bhatialaksh3@gmail.com'})
+	for acc in accounts:
+		print type(acc)
+		print acc.group_memberships
 	return render_template('waiting.html',**server_date)
 
 @app.route('/dashboard')
