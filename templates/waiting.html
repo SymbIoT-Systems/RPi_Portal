@@ -1,13 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-  <link href="//fonts.googleapis.com/css?family=Open+Sans:300italic,300,400italic,400,600italic,600,700italic,700,800italic,800" rel="stylesheet" type="text/css">
+  <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
 
   <link rel="stylesheet" type="text/css" href="/static/storm.css">
   <link rel="stylesheet" href="/static/flipclock.css">
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
   <script src="/static/flipclock.min.js"></script>
   <script>
+
+  function ongreenclick(value){
+      // Check if ORANGE
+      if(($('#slot'+value).css('background-color')) == 'rgb(247, 164, 31)'){
+      // Set Green 
+      $('#slot'+value).css('background-color','rgb(4,203,14)');
+      $('#slot'+value).css('border','2px solid rgb(4,128,14)');
+      }
+      // If Green
+      else if (($('#slot'+value).css('background-color')) == 'rgb(4, 203, 14)'){
+        // Toggle to orange
+        $('#slot'+value).css('background-color','rgb(247,164,31)');
+        $('#slot'+value).css('border','2px solid rgb(247,146,31)');
+      }
+    }
 
   function res_date_chosen(){
     // alert($('#res_date').val());
@@ -60,7 +75,6 @@
           $('#slot'+slotsforme[i]).css('background-color','rgb(4,203,14)');
           $('#slot'+slotsforme[i]).css('border','2px solid rgb(4,128,14)');
           //define onclick for green
-          $('#slot'+slotsforme[i]).bind('click',ongreenclick(slotsforme[i]),false);
         }
         var html='<div id ="node_list">List of Nodes in cluster: '+list_of_nodes+'</div>';
         $('#node_list').replaceWith(html);
@@ -70,8 +84,10 @@
     function deleteslot(){
       var slotstodelete=[];
 
-      for(var i=0;i<25;++i){
-        if (($('#slot'+i).css('background-color')) == 'rgb(247,164, 31)'){
+      for(var i=1;i<25;i++){
+        console.log(($('#slot'+i).css('background-color')));
+        if (($('#slot'+i).css('background-color')) == 'rgb(247, 164, 31)'){
+          alert(i);
           slotstodelete.push(i);
         }
       }
@@ -82,26 +98,10 @@
       $.post('/delete_slot/',{date:$('#res_date').val(),clusternumber:$('#selectlist_cluster option:selected').val(),slots:slotstodelete+""},function(result,status){
           window.location.href="/waiting"
         });
-      }
+      };
     }
 
     $(document).ready(function(){
-
-      function ongreenclick(value){
-      // Check if ORANGE
-      alert(value);
-      if(($('#slot'+value).css('background-color')) == 'rgb(247, 164, 31)'){
-      // Set Green 
-      $('#slot'+value).css('background-color','rgb(4,203,14)');
-      $('#slot'+value).css('border','2px solid rgb(4,128,14)');
-      }
-      // If Green
-      else if (($('#slot'+value).css('background-color')) == 'rgb(4, 203, 14)'){
-        // Toggle to orange
-        $('#slot'+value).css('background-color','rgb(247,164,31)');
-        $('#slot'+value).css('border','2px solid rgb(247,146,31)');
-      }
-    }
 
       //Dash button red and disabled
     $('#dash_button').prop('disabled',true);
@@ -176,7 +176,6 @@
           // Green
           $('#slot'+slotsforme[i]).css('background-color','rgb(4,203,14)');
           $('#slot'+slotsforme[i]).css('border','2px solid rgb(4,128,14)');
-          $('#slot'+slotsforme[i]).bind('click',ongreenclick(slotsforme[i]),false);
         }
       });
       
@@ -204,7 +203,7 @@
         html += '<tr>';
         for (var j = 0, colNum = 6; j < colNum; ++j,++n ) {
          
-            html += '<td><button class="slotButton" id="slot'+n+'" title="slot'+n+'">'+ slot_values[n-1] +'-'+ slot_values[n] +'</button></td>';
+            html += '<td><button class="slotButton" onclick="ongreenclick('+n+')" id="slot'+n+'" title="slot'+n+'">'+ slot_values[n-1] +'-'+ slot_values[n] +'</button></td>';
           
         }
 

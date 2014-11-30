@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <link href="//fonts.googleapis.com/css?family=Open+Sans:300italic,300,400italic,400,600italic,600,700italic,700,800italic,800" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
     <!-- Local stylesheet -->
     <!-- <link rel="stylesheet" type="text/css" href="/static/bootstrap.min.css"> -->
     <link rel="stylesheet" type="text/css" href="/static/style.css">
@@ -78,8 +78,12 @@
     }
 
     $(document).ready(function(){
+      $("#bar").hide();
+      $('#dash_load').show();
+
       //Table for Cluster Status
       $.post("/clusterdetails/",{data:{{cluster_number}}},function(result,status){
+
         dataformatted=$.parseJSON(result);
         listofnodes = dataformatted['listofnodes'].split(",");
         clusterlist = dataformatted['clusternumbers'].split(",");
@@ -110,7 +114,6 @@
         html += '</tbody></table>';
         $(html).appendTo('#table1');
           
-          
         var htmlcluster='<select id="selectcluster" onchange="tableedit()">';
         for (var i = 0; i < clusterlist.length; i++) {
           htmlcluster+='<option value="'+clusterlist[i]+'">'+clusterlist[i]+'</option>';
@@ -120,10 +123,10 @@
         clusterid=$("#selectcluster option:selected").val();
         
         // Update slot info in basestation console
-        // $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
+        $('#baseimage').html("</br> Slot 1:"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br> Slot 2:"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br> Slot 3:"+dataformatted['slot3'].replace(/\n/g, "</br>"));
 
         // Update slot info in switch form
-        // $('#switch_form_data').html("</br></br>"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br>"+"</br>"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br>"+"</br>"+dataformatted['slot3'].replace(/\n/g, "</br>"));
+        $('#switch_form_data').html("</br></br>"+dataformatted['slot1'].replace(/\n/g, "</br>")+"</br>"+"</br>"+dataformatted['slot2'].replace(/\n/g, "</br>")+"</br>"+"</br>"+dataformatted['slot3'].replace(/\n/g, "</br>"));
         
          if(("{{admin}}".indexOf("False"))>=0){
           $('#selectcluster').val("{{cluster_number}}");
@@ -131,11 +134,10 @@
 
           panelinit();
           resetpanels();
+          $('#dash_load').hide();
         // alert("You have been allocated cluster {{cluster_number}}");
       }
-      });
-
-      //Flash Initiated
+              //Flash Initiated
       // if ($("#consolebox").text().indexOf("Flash Initiated")>=0)
       if (("{{flashstarted}}").indexOf("True")>=0) 
       {
@@ -151,9 +153,13 @@
       }
       else{
         $("#bar").hide();
-        // isclusteralive(); 
+         // isclusteralive();  
         // Un-comment for actual working^
       }
+      
+      });
+
+      
 
       function isclusteralive (argument) {
         allbuttonsblock(true);
@@ -175,7 +181,7 @@
         var panelspeed = 300; //panel animate speed in milliseconds
         var totalpanels = 3; //total number of collapsible panels
         var defaultopenpanel = 0; //leave 0 for no panel open
-        var accordian = false; //set panels to behave like an accordian, with one panel only ever open at once      
+        var accordian = true; //set panels to behave like an accordian, with one panel only ever open at once      
  
         var panelheight = new Array();
         var currentpanel = defaultopenpanel;
@@ -245,7 +251,7 @@
 
       var socket = io.connect('http://' + document.domain + ':' + location.port + '/listen');
       $("#stoplisten").hide();
-      
+      socket.emit("listen","Hello");
       socket.on('my response', function(msg) {
       $('#consolebox').append('<p>Received: ' + msg + '</p>');
       $('#consolebox').scrollTop($('#consolebox')[0].scrollHeight);
@@ -255,6 +261,7 @@
         dataformatted=$.parseJSON(msg);
         $('#baseimage').html("</br>"+dataformatted['baseimagedata'].replace(/\n/g, "</br>"));
         $('#consolebox').html(dataformatted['consoledata'].replace(/\n/g, "</br>"));
+        // console.log(dataformatted);
       });
 
       socket.on('ping', function(msg) {
@@ -277,6 +284,7 @@
         $("#consolebox").append(dataformatted['data'].replace(/\n/g, "</br>"));
         if (dataformatted['data'].indexOf("initiated")>=0) {
           $.post("/ackreceived/",{data:'dumydata',clusterid:clusterid},function(result,status){
+            allbuttonsblock(false);
 
           });  
         } else{
@@ -294,7 +302,14 @@
         dataformatted=$.parseJSON(msg);
         id=parseInt(dataformatted['nodeid']);
         batteryvalue=parseInt(dataformatted['batterystatus'],16)/4096;
-        $("#battery"+id).html(batteryvalue.toFixed(2));
+        $("#battery"+id).html(batteryvalue.toFixed(2)*100+'%');
+      });
+
+      socket.on('activity',function(msg){
+        $('#dash_load').hide();
+        alert("Downloading file");
+        window.location.href="/"+msg;
+
       });
       
       $("#ping").click(function(){
@@ -318,6 +333,12 @@
         $("#stoplisten").hide();
       });
     
+      $("#activity").click(function(){
+        $('#dash_load').show();
+        $.post("/activity/",{clusterid:clusterid});
+        
+      });
+
      $("#formswitch").submit(function(event) {
       $('#baseimage').html('<p>Switching to image number: ' + $('input[name=imagenumberswitch]:checked', '#formswitch').val() + '</p>......');
       /* stop form from submitting normally */
@@ -355,36 +376,50 @@
     <div class="dash-box">
       <div class="header">
         <h1 class="dash">Testbed Cluster Control Panel</h1>
-        <center><h2>Welcome {{email}} !
+        <center>
+          <div class="spinner" id="dash_load">
+          <div class="bounce1"></div>
+          <div class="bounce2"></div>
+          <div class="bounce3"></div>
+          </div>
+        </center>  
+       </div>
+
+        <center><h2>Welcome {{email}} !</h2> 
+          <button style="float:left" id="activity" class="formButton">Activity Log</button>
           <button style="float:right" id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
-          </h2> </center>
+
+          </center>
           <center>
             <h6>You have been allocated Cluster {{cluster_number}}.</h6>
           </center>
         
-      </div>
+      
       <hr/>
       
       <!-- Upload and flash code -->
       <div class="expandable-panel" id="cp-1">
         <div class="expandable-panel-heading">
-          <h2><b>Upload</b><span class="icon-close-open"></span></h2>
+          <h2><b>Upload</b><span class="bar" id="bar"></span><span class="icon-close-open"></span></h2>
         </div>
 
         <div class="expandable-panel-content">
         </br>
           Upload relevant tos_image.xml file 
+          
           </br>
           </br>
-          <form action="upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()" name="uploadform">
+          <div>
+          <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()" name="uploadform">
             <input type="file" name="file" id="FileButton" name="FileButton"></br>
             Choose slot number:
             <input type="number" name="imagenumber" min="1" max="3" value="1">
             <input type="submit" value="Flash" id="FlashButton" class="formButton">
           </form>
+        </div>
           </br>
           
-          <div class="bar" id="bar"></div>
+          
 
         </div>
       </div>
@@ -475,6 +510,7 @@
       </br>
       </br>
     </div>
+  </div>
   </div>
   </body>
 </html>

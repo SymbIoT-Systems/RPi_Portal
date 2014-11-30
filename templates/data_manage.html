@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
 		<!-- Force Cache Reload -->
 		<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 		<meta http-equiv="Pragma" content="no-cache" />
 		<meta http-equiv="Expires" content="0" />
-
-		<h1>Database Management</h1>
+	   <link rel="stylesheet" type="text/css" href="/static/style.css">
+       <link rel="stylesheet" type="text/css" href="/static/storm.css">
+    
+		
 
 		<!-- <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
           rel="stylesheet"> -->
@@ -297,8 +300,12 @@
 	</head>
 
 	<body>
-	<div class="container">
-
+	<div class="dash-container">
+    <div class="dash-box">
+    	<div class="header">
+        <h1 class="dash">Database Management</h1>
+    </br>
+    	</div>
 		<!-- Modal Forms -->
 
 		<!-- Node Data Add Form -->
@@ -422,7 +429,7 @@
 		<div class="expandable-panel" id="cp-1">
 
         	<div class="expandable-panel-heading">
-        	  <h2>Cluster Description<a href="#modal-node-add" class="panelButton" title="Add Node Data" >Add Node Data</a><span class="icon-close-open"></span></h2>
+        	  <h2>Cluster Description<button onclick="window.location.href='#modal-node-add'" class="panelButton" title="Add Node Data">Add Node Data</button><span class="icon-close-open"></span></h2>
         	</div>
 
 	        <div class="expandable-panel-content">
@@ -437,7 +444,7 @@
 	    <div class="expandable-panel" id="cp-2">
 
         	<div class="expandable-panel-heading">
-        	  <h2>Testbed Description<a href="#modal-cluster-add" class="panelButton" title="Add Cluster Details" >Add Cluster Data<span class="icon-close-open"></a></span></h2>
+        	  <h2>Testbed Description<span><button onclick="window.location.href='#modal-cluster-add'" class="panelButton" title="Add Cluster Details">Add Cluster Data</button></span><span class="icon-close-open"></span></h2>
         	</div>		
         	<div class="expandable-panel-content">
         		<div id="clustersdata"></div>
@@ -446,6 +453,7 @@
 
 	<hr>
 	<!-- Container Div ends -->
+</div>
   	</div> 
   	<!-- Body Ends -->
   	</body>

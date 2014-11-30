@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-  <link href="//fonts.googleapis.com/css?family=Open+Sans:300italic,300,400italic,400,600italic,600,700italic,700,800italic,800" rel="stylesheet" type="text/css">
+  <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
 
   <link rel="stylesheet" type="text/css" href="/static/storm.css">
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
@@ -57,7 +57,7 @@
 
   function reserve(){
       var slotsreserved=[];
-
+      $('#reserve_load').show();
       for(var i=0;i<25;++i){
         if (($('#slot'+i).css('background-color')) == 'rgb(4, 203, 14)'){
           slotsreserved.push(i);
@@ -74,6 +74,7 @@
   }  
 
     $(document).ready(function(){
+      $('#reserve_load').hide();
 
       $.post('/get_registration/',{
         date_reserved:'{{server_date}}',cluster_number:'1',pagename:'reserve'
@@ -173,7 +174,15 @@
       
       <button id="reserveButton"class="formButton" title="Reserve" onclick="reserve()">Reserve slots</button>
       <button id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
+       <div class="spinner" id="reserve_load">
+          <div class="bounce1"></div>
+          <div class="bounce2"></div>
+          <div class="bounce3"></div>
+          </div>
+       </div>  
+
       </div>
+
       </center>     
       
     </div>     

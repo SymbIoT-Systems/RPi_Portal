@@ -290,41 +290,7 @@
 
   100% {
     transform: rotateX(0deg); } }
-
-.flip-clock-wrapper ul.play li.flip-clock-before .up {
-  z-index: 2;
-  -webkit-animation: turn2 0.5s linear both;
-  -moz-animation: turn2 0.5s linear both;
-  animation: turn2 0.5s linear both; }
-
-@-webkit-keyframes turn2 {
-  0% {
-    -webkit-transform: rotateX(0deg); }
-
-  100% {
-    -webkit-transform: rotateX(-90deg); } }
-
-@-moz-keyframes turn2 {
-  0% {
-    -moz-transform: rotateX(0deg); }
-
-  100% {
-    -moz-transform: rotateX(-90deg); } }
-
-@-o-keyframes turn2 {
-  0% {
-    -o-transform: rotateX(0deg); }
-
-  100% {
-    -o-transform: rotateX(-90deg); } }
-
-@keyframes turn2 {
-  0% {
-    transform: rotateX(0deg); }
-
-  100% {
-    transform: rotateX(-90deg); } }
-
+    
 .flip-clock-wrapper ul li.flip-clock-active {
   z-index: 3; }
 

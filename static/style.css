@@ -13,7 +13,7 @@ html,body {
       }
 
 h1,.dash{
-  font-weight: 500;
+  font-weight: 600;
   font-size: 31px;
   text-align: center;
   margin-bottom: 15px;
@@ -334,8 +334,8 @@ body  {
   padding: 0.6em 1em;
   text-decoration:none;
   text-shadow:0px 2px 7px #6d9cd1;
-  margin: 5px;
-  margin-left: 600px;
+  margin: 8px;
+  margin-left: 550px;
 }
 .panelButton:hover {
   background-color:#3caad6;
@@ -347,34 +347,6 @@ body  {
   text-decoration: none;
 }
 
-/*.formButton{
-  -moz-box-shadow: 0px 0px 14px 0px #71828a;
-  -webkit-box-shadow: 0px 0px 14px 0px #71828a;
-  box-shadow: 0px 0px 14px 0px #71828a;
-  background-color:#45a4c7;
-  -moz-border-radius:13px;
-  -webkit-border-radius:13px;
-  border-radius:13px;
-  border:2px solid #25a7c7;
-  display:inline-block;
-  cursor:pointer;
-  color:#ffffff;
-  font-family:arial;
-  font-size:14px;
-  padding: 0.6em 1em;
-  text-decoration:none;
-  text-shadow:0px 2px 7px #6d9cd1;
-  margin: 5px;
-}
-.formButton:hover {
-  background-color:#3caad6;
-  text-decoration: none;
-}
-.formButton:active {
-  position:relative;
-  top:1px;
-  text-decoration: none;
-}*/
 
 /*Forms*/
 form    {

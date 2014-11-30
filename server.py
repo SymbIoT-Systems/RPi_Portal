@@ -80,7 +80,7 @@ app.config['ALLOWED_EXTENSIONS'] = set(['xml'])
 app.config['SECRET_KEY']="secret!"
 socketio=SocketIO(app)
 listenrequest=False
-
+activitylog=False
 stormpath_manager = StormpathManager(app)
 
 #hrefs for BITS-Testbed Application and Account Store Directory
@@ -133,7 +133,15 @@ def on_connect(mosq, obj, rc):
 def on_message(mosq, obj, msg):
     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
     if "response/" in msg.topic:
-        if "usbbasepath" in str(msg.payload):
+        global activitylog
+        if activitylog == True:
+            log_file=open(app.config['UPLOAD_FOLDER']+"activitylog.txt","w")
+            log_file.write(str(msg.payload))
+            log_file.close()
+            socketio.emit('activity',app.config['UPLOAD_FOLDER']+"activitylog.txt",namespace="/listen")
+            activitylog=False
+
+        elif "usbbasepath" in str(msg.payload):
             # here send data to frontend
             sleep(2)
             socketio.emit('usbbasepath',str(msg.payload).replace("usbbasepath",""),namespace="/listen")
@@ -152,8 +160,11 @@ def on_message(mosq, obj, msg):
             socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
         elif "batterystatus" in str(msg.payload):
             status=json.loads(str(msg.payload).replace("batterystatus ",''))
-            socketio.emit('batterystatus',json.dumps(status),namespace="/listen")           
-            
+            socketio.emit('batterystatus',json.dumps(status),namespace="/listen")   
+        elif "activitylog" in str(msg.payload):
+            print "activitylog"
+            activitylog=True
+
     elif "listen/" in msg.topic:
         socketio.emit('my response',str(msg.payload),namespace="/listen")
     elif msg.topic == "register":
@@ -239,9 +250,10 @@ def check_reservations():
         slots=everyelement[3].split(',')
         for slot in slots:
             if slot == str(datetime.now().hour):
-                print "Delete slot"
+                # print "Delete slot"
                 if everyelement[5] == "True":
-                    everyelement[5] = "False"
+                    conn.execute('UPDATE RESERVATIONS SET INVIEWER = "False" WHERE ID='+str(everyelement[0])+';')
+                    conn.commit()
                     accounts = directory.accounts.search({'email':everyelement[1]})
                     for acc in accounts:
                         group_memberships=acc.group_memberships
@@ -249,22 +261,27 @@ def check_reservations():
                             if "viewer" in gms.group.name:
                                 gms.delete()
                 elif everyelement[5] == "False":
-                    print "Already deleted" 
+                    # print "Already deleted"
+                    pass 
 
             elif slot==str((datetime.now().hour)+1):#In hours
-                print "My slot"
+                # print "My slot"
                 if everyelement[5] =="False":
-                    everyelement[5] = "True"
+                    #everyelement[5] = "True"
+                    conn.execute('UPDATE RESERVATIONS SET INVIEWER = "True" WHERE ID='+str(everyelement[0])+';')
+                    conn.commit()
                     if everyelement[4] == "1":
 	                    try:
 	                        viewer_group1.add_account(everyelement[1])
 	                    except:
-	                        print "Already exists"
+	                       pass
+	                        # print "Already exists"
                     elif everyelement[4] == "2":
 	                    try:
 	                        viewer_group2.add_account(everyelement[1])
 	                    except:
-	                        print "Already exists"
+	                       pass
+	                        # print "Already exists"
 	           
                #delete membership for group waiting
                     try:
@@ -277,7 +294,8 @@ def check_reservations():
                     except:
                         print "Cannot delete error"
                 elif everyelement[5] == "True":
-	            	print "Already in group"
+	            	# print "Already in group"
+                    pass
 
     conn.close()
 
@@ -388,13 +406,16 @@ def delete_slot():
     for everyelement in allcursor:
         slotsnew=[]
         slotsreserved=everyelement[3].split(',')
-        for sr in slotsreserved:
-            for sd in slotsdelete:
-                if str(sr) == str(sd):
-                    pass
-                else:
-                    slotsnew.append(sr)
-        conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\''+','.join(slotsnew)+'\' WHERE ID=\''+everyelement[0]+'\'')
+        if slotsreserved == slotsdelete :
+            conn.execute('DELETE FROM RESERVATIONS WHERE ID = '+str(everyelement[0])+';')
+        else:
+            for sr in slotsreserved:
+                for sd in slotsdelete:
+                    if str(sr) == str(sd):
+                        pass
+                    else:
+                        slotsnew.append(sr)
+            conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\''+','.join(slotsnew)+'\' WHERE ID=\''+str(everyelement[0])+'\'')
     conn.commit()
     conn.close()
     return "Slot deleted"
@@ -529,6 +550,13 @@ def savedata():
     #return redirect(url_for('uploaded_file',filename="log.txt"))
     return "Uploaded"
 
+@app.route('/activity/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
+def activitylog():
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"activitylog")
+    return "Activity log will be downloaded"
+
+
 @app.route('/stoplisten/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def stoplisten():
@@ -539,6 +567,7 @@ def stoplisten():
 @app.route('/ackreceived/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
 def ackreceived():
+    print "ackreceived"
     mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"ackreceived")
     return "0"
 
@@ -679,8 +708,6 @@ def get_registration():
     clusternum=request.form['cluster_number']
     whichpage = request.form['pagename']
     conn=sqlite3.connect('portal.db')
-    print date
-    print clusternum
     cursor=conn.execute('SELECT * FROM RESERVATIONS WHERE DATE_RESERVED=\''+date+'\' AND CLUSTERNUMBER=\''+clusternum+'\'')
     allcursor=cursor.fetchall()
     slotsreserved=[]
@@ -694,14 +721,14 @@ def get_registration():
             if str(user.email) == everyelement[1]:
                 # Check for next valid slot for this user
                 list_el= everyelement[3].split(',')
-                print "this is list"
-                print list_el
                 for i in list_el:
                     if ((int(i)- datetime.now().hour) >= 1):
                         if min_slot > int(i):
                             min_slot = int(i)
                             print i
-                slotsreservedforme.append(str(everyelement[3]))
+                        slotsreservedforme.append(i)
+                    else:
+                        slotsreserved.append(i)
             else:
                 slotsreserved.append(str(everyelement[3]))
     elif whichpage == 'reserve':
