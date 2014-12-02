@@ -55,7 +55,7 @@
             }
             else{
               html += '<center><td id="battery'+listofnodes[i-1]+'"></center></td>';
-              // <img src ="/static/full-battery-m.png">
+              
               // panelinit();
               // resetpanels();
             };
@@ -77,7 +77,13 @@
       });
     }
 
+    function closeDashWarning(){
+      return 'Are sure you want to leave?  -- if you leave, the unsaved sniffer log will be lost.'
+
+    }
+
     $(document).ready(function(){
+      //window.onbeforeunload = closeDashWarning;
       $("#bar").hide();
       $('#dash_load').show();
 
@@ -105,8 +111,8 @@
             else{
               html += '<center><td id="battery'+listofnodes[i-1]+'"></center></td>';
               // <img src ="/static/full-battery-m.png">
-              // panelinit();
-              // resetpanels();
+               panelinit();
+               resetpanels();
             };
           } 
           html += "</tr>";
@@ -293,7 +299,7 @@
       });
 
       socket.on('ackreceived',function (msg) {
-        alert("Node no."+msg+" flashed succesfully!");
+        $("#consolebox").append("Node no."+msg+" flashed succesfully!</br>");
         $("#bar").hide();
         allbuttonsblock(false); 
       });
@@ -302,7 +308,10 @@
         dataformatted=$.parseJSON(msg);
         id=parseInt(dataformatted['nodeid']);
         batteryvalue=parseInt(dataformatted['batterystatus'],16)/4096;
-        $("#battery"+id).html(batteryvalue.toFixed(2)*100+'%');
+        // $("#battery"+id).html('<div>'+batteryvalue.toFixed(2)*100+'%'+'<img src ="/static/full-battery-l.png"></div>');
+        $("#battery"+id).html('<div><center style="max-height:48px"><img src ="/static/full-battery-l.png"><DIV STYLE="position:relative; top:-40px;width:20px;left:6px;max-height:48px">'+batteryvalue.toFixed(2)*100+'%'+'</center></div>');
+        panelinit();
+        resetpanels();
       });
 
       socket.on('activity',function(msg){
@@ -462,7 +471,7 @@
        <!-- Switch images on all remote nodes -->
        </br>
        <center>
-       <form action="switch/" id="formswitch" name="formswitch" class="form-switch">
+       <form action="/switch/" id="formswitch" name="formswitch" class="form-switch">
         Please select image number to switch to:
        </br>
         <span class="span-switch">

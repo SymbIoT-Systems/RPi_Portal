@@ -59,7 +59,7 @@ api_key_file = '~/.stormpath/apiKey.properties'
 client = Client(api_key_file_location = expanduser(api_key_file))
 
 app = Flask(__name__)
-app.debug = True
+app.debug = False
 
 app.config['SECRET_KEY'] = 'xxx'
 app.config['STORMPATH_API_KEY_FILE'] = expanduser('~/.stormpath/apiKey.properties')
@@ -71,7 +71,7 @@ app.config['STORMPATH_ENABLE_MIDDLE_NAME'] = False
 # app.config['STORMPATH_ENABLE_USERNAME'] = True
 app.config['STORMPATH_ENABLE_SURNAME'] = False
 app.config['STORMPATH_ENABLE_GIVEN_NAME'] = False
-
+app.config['STORMPATH_ENABLE_FORGOT_PASSWORD'] = True
 #Code uploading
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xml'])
@@ -241,6 +241,9 @@ waiting = False
 for grp in waitings:
     waiting = grp
 
+def deletefromgroup():
+    global grouptodelete
+    grouptodelete.delete()
 
 def check_reservations():
     conn=sqlite3.connect('portal.db')
@@ -249,8 +252,7 @@ def check_reservations():
     for everyelement in allcursor:
         slots=everyelement[3].split(',')
         for slot in slots:
-            if slot == str(datetime.now().hour):
-                # print "Delete slot"
+            if int(slot) <= (datetime.now().hour):
                 if everyelement[5] == "True":
                     conn.execute('UPDATE RESERVATIONS SET INVIEWER = "False" WHERE ID='+str(everyelement[0])+';')
                     conn.commit()
@@ -259,9 +261,12 @@ def check_reservations():
                         group_memberships=acc.group_memberships
                         for gms in group_memberships:
                             if "viewer" in gms.group.name:
-                                gms.delete()
-                elif everyelement[5] == "False":
-                    # print "Already deleted"
+                                global grouptodelete
+                                grouptodelete = gms
+                                mqttc.publish("commands/"+str(everyelement[4]),"activitylog")
+                                mqttc.publish("commands/"+str(everyelement[4]),"activitydelete")
+                                threading.Timer(45.0, deletefromgroup).start()
+                elif everyelement[5] == "False":                    # print "Already deleted"
                     pass 
 
             elif slot==str((datetime.now().hour)+1):#In hours
@@ -275,7 +280,7 @@ def check_reservations():
 	                        viewer_group1.add_account(everyelement[1])
 	                    except:
 	                       pass
-	                        # print "Already exists"
+	                       #print "Already exists"
                     elif everyelement[4] == "2":
 	                    try:
 	                        viewer_group2.add_account(everyelement[1])
@@ -294,7 +299,7 @@ def check_reservations():
                     except:
                         print "Cannot delete error"
                 elif everyelement[5] == "True":
-	            	# print "Already in group"
+                    #print "Already in group"
                     pass
 
     conn.close()
@@ -327,48 +332,21 @@ def validate(value):
 def home():
 
     if current_user.is_authenticated():
-        print user.email
+        # print user.email
         return redirect ('/waiting')
 
     else:
         return render_template('index.html')
 
-@app.route('/admins')
+@app.route('/admin')
 @groups_required(['admins'])
 def admins():
-    return "Kuch kaam kar le :P"
+    return render_template('admin.html')
 
 @app.route('/reserve')
 @login_required
 def reserve():
-    # if not current_user.is_authenticated():
-    #     print "You are not logged in!"
-             
-    #     errorMessage= {
-    #         'error' : 'You are not logged in!!'
-    #     }
-
-    #     return render_template('error.html',**errorMessage)
-
-    # reservation_valid = True
-
-    # if reservation_valid == True:
-    #     print "Reservation is valid"
-        
-    #     member_viewer = False
-    #     group_memberships = user.group_memberships
-    #     for gms in group_memberships:
-
-    #         if 'viewer' in gms.group.name:
-    #             member_viewer = True
-    #             print "Already a viewer!"
-    #             pass
-            
-    #     if member_viewer == False:
-    #         user.add_group(viewer_group1)
-    #         # viewer_group1.add_account(user.email)
-    #         member_viewer = True
-            
+        server_date['email']=str(user.email).split('@')[0]
         return render_template('reserve.html',**server_date)
 
 @app.route('/reserve_slot/',methods=['POST'])
@@ -381,7 +359,27 @@ def reserve_slot():
         return "Reservation not complete"
     conn=sqlite3.connect('portal.db')
     emailaddress=unicodedata.normalize('NFKD', user.email).encode('ascii','ignore')
-    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,INVIEWER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',"False")')
+    cursor = conn.execute('SELECT * FROM RESERVATIONS WHERE USEREMAIL = \''+str(emailaddress)+'\' AND DATE_RESERVED=\''+str(date)+'\'')
+    a = cursor.fetchone()
+    if a is not None:
+        print a
+        newlist = a[3].split(',')
+        print newlist
+        newlistint=[]
+        for i in newlist:
+            newlistint.append(int(i))
+        print newlistint
+        slotsnew=slots.split(',')
+        print slotsnew
+        for i in slotsnew:
+            newlistint.append(int(i))
+        newlistint.sort()
+        print newlistint
+        # print 'UPDATE RESERVATIONS SET SLOTNUMBERS=\"'+','.join(newlistint)+'\" WHERE ID=\''+str(a[0])+'\''
+        conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\"'+','.join(map(str,newlistint))+'\" WHERE ID=\''+str(a[0])+'\'')
+        print "gere"
+    else:
+        conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,INVIEWER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',"False")')
     conn.commit()
     conn.close()
     try:
@@ -473,7 +471,7 @@ def index():
         errorMessage = {
             'error' : 'You are not allowed here!...yet.'
         }
-        return render_template('error.html',**errorMessage)
+        return render_template('error403.html',**errorMessage)
 
 @app.route('/cluster_status/',methods=['POST'])
 @groups_required(valid_groups_dash,all = False)
@@ -611,6 +609,9 @@ def data_get():
     elif table == "clustersdata":
         cursor=conn.execute("SELECT * from CLUSTERDETAILS")
         a = cursor.fetchall()
+    elif table == "reservationsdata":
+    	cursor=conn.execute("SELECT * FROM RESERVATIONS")
+    	a=cursor.fetchall()
     print a
     conn.close()
     # print "after"+a
@@ -622,6 +623,7 @@ def data_edit():
     conn = sqlite3.connect('portal.db')
     idno=(request.form['idno'])
     table=request.form['data']
+    print table
     if table == "nodeedit":
         nodeid=(request.form['nodeid'])
         dev_id=(request.form['dev_id'])
@@ -637,6 +639,13 @@ def data_edit():
         gateway_mac=request.form['gateway_mac']
         gateway_ip=request.form['gateway_ip']
         conn.execute("UPDATE CLUSTERDETAILS SET CLUSTER_NO = " + clusterno + ",HEAD_NO = "+ clusterhead_no +",HEAD_DEVICEID = '"+ head_dev_id +"',NODE_LIST = '" + node_list + "',PI_MAC = '" + gateway_mac + "',PI_IP = '" + gateway_ip+"' WHERE ID="+ idno +";")
+    elif table == "reservationedit":
+        useremail=request.form['useremail']
+        slotnumbers=request.form['slotnumbers']
+        clusternumber=request.form['clusternumber']
+        datereserved=request.form['datereserved']
+        inviewer=request.form['inviewer']
+        conn.execute("UPDATE RESERVATIONS SET USEREMAIL = \'" + str(useremail) + "\',DATE_RESERVED = \'"+ str(datereserved) +"\',SLOTNUMBERS = '"+ str(slotnumbers) +"',CLUSTERNUMBER = '" + str(clusternumber) + "',INVIEWER = '" + str(inviewer) + "\' WHERE ID="+ str(idno) +";")
     conn.commit()
     conn.close()
     return "Done"
@@ -651,6 +660,8 @@ def data_delete():
         conn.execute("DELETE FROM NODEDETAILS WHERE ID=\'"+idno+"\'")
     elif deletewhat == "cluster":
         conn.execute("DELETE FROM CLUSTERDETAILS WHERE ID=\'"+idno+"\'")
+    elif deletewhat == "reservation":
+        conn.execute("DELETE FROM RESERVATIONS WHERE ID=\'"+idno+"\'")
     conn.commit()
     conn.close()
     return "Data Entry Deleted"
@@ -715,7 +726,7 @@ def get_registration():
     
     min_slot = 25
     delta = 0
-    print allcursor
+    # print allcursor
     if whichpage == 'waiting':
         for everyelement in allcursor:
             if str(user.email) == everyelement[1]:
@@ -762,6 +773,33 @@ def get_registration():
 @groups_required(valid_groups_dash,all = False)
 def handle_message(message):
     print('received message: ' + message)
+
+#Custom Error Handlers
+@app.errorhandler(403)
+def access_denied(e):
+
+    errorMessage = {
+            'error' : 'You are not allowed here!...yet.'
+        }
+
+    return render_template('error403.html',**errorMessage), 403
+
+@app.errorhandler(404)
+def page_not_found(e):
+    errorMessage = {
+
+            'error' : 'Are you sure this is where you want to be?'
+        }
+
+    return render_template('error404.html',**errorMessage), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    errorMessage = {
+            'error' : 'Seems like something bad happened...'
+        }
+
+    return render_template('error500.html', **errorMessage), 500
 
 if __name__ == '__main__':
     socketio.run(app,host='0.0.0.0',port=8088)

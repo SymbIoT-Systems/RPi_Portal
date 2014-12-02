@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+f<!DOCTYPE html>
 <html lang="en">
   <head>
   <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
@@ -43,7 +43,7 @@
         next_slot = data_formatted['next_slot_delta'];
 
         if (next_slot == "90000"){
-            var html = "<div id =\"clkmsg\"> Choose a different cluster! </div>";
+            var html = "<div id =\"clkmsg\"> Choose a different cluster or a different date! </div>";
             $('#clkmsg').replaceWith(html);
 
             alert("You do not have a slot today in this cluster");
@@ -141,7 +141,7 @@
         if (next_slot == "90000"){
           
           $('#clk_display').css('visibility','hidden'); 
-          var html = "<div id =\"clkmsg\">Choose a different cluster!</div>";
+          var html = "<div id =\"clkmsg\">Choose a different cluster or a different date!</div>";
           $('#clkmsg').replaceWith(html);
 
           alert("You do not have a slot today in this cluster");

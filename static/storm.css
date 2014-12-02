@@ -31,7 +31,7 @@
 
 img.resize{
     padding: 20px;
-    max-width:60%; 
+    max-width:600px; 
     height: auto;
 }
 h1{
@@ -205,10 +205,10 @@ button:focus {
 
 /*Spinner*/
 .spinner {
-  margin-top: 30px auto 0;
+  margin-top: 50px auto 0;
   width: 70px;
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .spinner > div {

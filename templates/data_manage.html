@@ -41,30 +41,36 @@
 			$('#edit_node_list').val(jsondatacluster[i][4]);
 			$('#edit_gateway_mac').val(jsondatacluster[i][5]);
 			$('#edit_gateway_ip').val(jsondatacluster[i][6]);
-		}
+		}		
 
 	$(document).ready(function(){
 		// $("#data_add_form").hide();
 		// $("#editform").hide();
 		// $("#cluster_add_form").hide();
 		// $('#clustereditform').hide();
-		function deleteclick(name){
+		deleteclick=function (name){
 			//Promt for yes and no
 			//if yes then the following code
+			var value=confirm('Did you want to delete?');
+			if(value == true){	
 			$.post('/data_delete/',{idno:name,deletewhat:'node'},function(result,status){
 				getnodedata();
 				alert(result);
 			});
 		}
+		}
 
-		function deleteclickcluster(name){
+		deleteclickcluster=function (name){
 			//Promt for yes and no
 			//if yes then the following code
+			var value=confirm('Did you want to delete?');
+			if(value == true){
 			$.post('/data_delete/',{idno:name,deletewhat:'cluster'},function(result,status){
 				getclusterdata();
 				alert(result);
 			});
-		}		
+		}
+		}
 
 		function getnodedata(){
 			$.post('/data_get/',{data:'nodesdata'},function(result,status){
