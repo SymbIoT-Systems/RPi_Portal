@@ -2,28 +2,67 @@ h2, p, ol, ul, li {
 	margin: 0px;
 	padding: 0px;
 	font-size: 20px;
-	font-family: Tahoma, Geneva, sans-serif;
-  font-weight: bold;
+	/*font-family: Tahoma, Geneva, sans-serif;*/
+  /*font-weight: bold;*/
 }
 
-h1 {
-    color:white;
+html,body {
+        height: 100%;
+        font-family:"Open Sans";
+        background-color: #F0F4F8;
+      }
+
+h1,.dash{
+  font-weight: 600;
+  font-size: 31px;
+  text-align: center;
+  margin-bottom: 15px;
 }
+h2{
+  font-family:"Open Sans";
+  font-weight: 300;
+  font-size: 21px;
+}
+h6{
+  font-family:"Open Sans";
+  font-weight: 600;
+  font-size: 15px;
+}
+
 body  {
     /*background-image: url('static/background.png');*/
-    background-image: url('background.jpg');
-    background-color: #cccccc;
+    /*background-image: url('background.jpg');*/
+    
     background-size: 100%;
     /*background-repeat: no-repeat;*/
     }
 
-#container {
-	width: 300px;
-	margin: auto;
-	margin-top: 100px;
+.dash-container{
+  display: block;
+  /*padding-right: 15px;
+  padding-left: 15px;*/
+  margin-right: auto;
+  margin-left: auto;
+  background-color: white;
+  max-width: 1000px;
+  margin: auto;
+  margin-top: 50px;
+  margin-bottom: 50px;
   vertical-align: middle;
 }
 
+.dash-box{
+  /*background-color: #f6f6f6;*/
+  padding: 0;
+  margin-top: 50px;
+  box-shadow: 0 0px 3px 1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #cacaca;
+  border-radius: 3px;
+  padding: 0 30px;
+  background-color: white;
+  margin-left: auto;
+  margin-right: auto;
+}
 /*COLLAPSIBLE PANELS*/
 
 .expandable-panel {
@@ -43,6 +82,7 @@ body  {
     background-color:#E5E5E5;
     position:relative;
     display: block;
+    font-weight: 600;
 }
 .expandable-panel-heading:hover {
     color:#666;
@@ -75,7 +115,7 @@ body  {
     right:15px;
 }
 .expandable-panel-content img {
-    float:right;
+    /*float:right;*/
     padding-left:12px;
 }
 .header-active {
@@ -124,7 +164,7 @@ body  {
  * The ::before element creates the darker box around the loading bar itself.
  */
 
-/*.bar::before {
+.bar::before {
     content: " ";
     position: absolute;
     top: -10px;
@@ -137,7 +177,7 @@ body  {
     -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(0, 0, 0, 0.1);
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(0, 0, 0, 0.1);
     z-index: -1;
-}*/
+}
 
 /**
  * Animate the stripes.
@@ -182,7 +222,10 @@ body  {
     -moz-border-radius-topleft:4px;
     -webkit-border-top-left-radius:4px;
     border-top-left-radius:4px;
-}.CSSTableGenerator table{
+}
+
+.CSSTableGenerator table{
+    table-layout: fixed;
     border-collapse: collapse;
     border-spacing: 0;
     width:100%;
@@ -190,7 +233,8 @@ body  {
     margin:0px;
     padding:0px;
 
-}.CSSTableGenerator tr:last-child td:last-child {
+}
+.CSSTableGenerator tr:last-child td:last-child {
     -moz-border-radius-bottomright:4px;
     -webkit-border-bottom-right-radius:4px;
     border-bottom-right-radius:4px;
@@ -232,11 +276,11 @@ body  {
     border-width:0px 0px 0px 0px;
 }
 .CSSTableGenerator tr:first-child td{
-        background:-o-linear-gradient(bottom, #266baf 5%, #11263a 100%);    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #266baf), color-stop(1, #11263a) );
-    background:-moz-linear-gradient( center top, #266baf 5%, #11263a 100% );
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#266baf", endColorstr="#11263a");  background: -o-linear-gradient(top,#266baf,11263a);
-
-    background-color:#266baf;
+        background:-o-linear-gradient(bottom, #3885A1 5%, #11263a 100%);    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #3885A1), color-stop(1, #11263a) );
+    background:-moz-linear-gradient( center top, #3885A1 5%, #11263a 100% );
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#3885A1", endColorstr="#11263a");  background: -o-linear-gradient(top,#3885A1,11263a);
+    /*3885A1*/
+    background-color:#3885A1;
     border:0px solid #ffffff;
     text-align:center;
     border-width:0px 0px 1px 1px;
@@ -246,11 +290,11 @@ body  {
     color:#ffffff;
 }
 .CSSTableGenerator tr:first-child:hover td{
-    background:-o-linear-gradient(bottom, #266baf 5%, #11263a 100%);    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #266baf), color-stop(1, #11263a) );
-    background:-moz-linear-gradient( center top, #266baf 5%, #11263a 100% );
-    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#266baf", endColorstr="#11263a");  background: -o-linear-gradient(top,#266baf,11263a);
+    background:-o-linear-gradient(bottom, #3885A1 5%, #11263a 100%);    background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #266baf), color-stop(1, #11263a) );
+    background:-moz-linear-gradient( center top, #3885A1 5%, #11263a 100% );
+    filter:progid:DXImageTransform.Microsoft.gradient(startColorstr="#3885A1", endColorstr="#11263a");  background: -o-linear-gradient(top,#3885A1,11263a);
 
-    background-color:#266baf;
+    background-color:#3885A1;
 }
 .CSSTableGenerator tr:first-child td:first-child{
     border-width:0px 0px 1px 0px;
@@ -290,8 +334,8 @@ body  {
   padding: 0.6em 1em;
   text-decoration:none;
   text-shadow:0px 2px 7px #6d9cd1;
-  margin: 5px;
-  margin-left: 600px;
+  margin: 8px;
+  margin-left: 550px;
 }
 .panelButton:hover {
   background-color:#3caad6;
@@ -303,59 +347,75 @@ body  {
   text-decoration: none;
 }
 
-.formButton{
-  -moz-box-shadow: 0px 0px 14px 0px #71828a;
-  -webkit-box-shadow: 0px 0px 14px 0px #71828a;
-  box-shadow: 0px 0px 14px 0px #71828a;
-  background-color:#45a4c7;
-  -moz-border-radius:13px;
-  -webkit-border-radius:13px;
-  border-radius:13px;
-  border:2px solid #25a7c7;
-  display:inline-block;
-  cursor:pointer;
-  color:#ffffff;
-  font-family:arial;
-  font-size:14px;
-  padding: 0.6em 1em;
-  text-decoration:none;
-  text-shadow:0px 2px 7px #6d9cd1;
-  margin: 5px;
-}
-.formButton:hover {
-  background-color:#3caad6;
-  text-decoration: none;
-}
-.formButton:active {
-  position:relative;
-  top:1px;
-  text-decoration: none;
-}
+
 /*Forms*/
 form    {
 background: -webkit-gradient(linear, bottom, left 175px, from(#CCCCCC), to(#EEEEEE));
 background: -moz-linear-gradient(bottom, #CCCCCC, #EEEEEE 175px);
 margin:auto;
 /*position:relative;*/
-width:550px;
+max-width:550px;
+
 /*height:450px;*/
-font-family: Tahoma, Geneva, sans-serif;
-font-size: 14px;
+/*font-family: Tahoma, Geneva, sans-serif;*/
+font-size: 16px;
 display:block;
 line-height: 24px;
-font-weight: bold;
-color: #1F3D7A;
+/*font-weight: bold;*/
+/*color: #1F3D7A;*/
 text-decoration: none;
 -webkit-border-radius: 10px;
 -moz-border-radius: 10px;
 border-radius: 10px;
-padding:10px;
+padding:15px;
 border: 1px solid #999;
 border: inset 1px solid #333;
 -webkit-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
 -moz-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
 box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
 }
+
+.form-switch {
+background: -webkit-gradient(linear, bottom, left 175px, from(#CCCCCC), to(#EEEEEE));
+background: -moz-linear-gradient(bottom, #CCCCCC, #EEEEEE 175px);
+margin:auto;
+/*position:relative;*/
+max-width:550px;
+
+/*height:450px;*/
+/*font-family: Tahoma, Geneva, sans-serif;*/
+font-size: 16px;
+/*display:inline;*/
+line-height: 24px;
+/*font-weight: bold;*/
+/*color: #1F3D7A;*/
+text-decoration: none;
+-webkit-border-radius: 10px;
+-moz-border-radius: 10px;
+border-radius: 10px;
+padding:15px;
+border: 1px solid #999;
+border: inset 1px solid #333;
+-webkit-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+-moz-box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+}
+.span-switch{
+  margin: 0px;
+  display: inline-block;
+  margin-right: 50px;
+  
+}
+
+.span-switch-data{
+  margin: 0px;
+  display: inline-block;
+  
+}
+
+/*input[type="radio"]{
+  margin-bottom: 60px;
+}*/
 
 input[type="text"]    {
 width:375px;

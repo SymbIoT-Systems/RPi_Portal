@@ -15,30 +15,63 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 from werkzeug import secure_filename
 import serial
 from flask.ext.socketio import SocketIO, emit
-from time import sleep
+from time import sleep,strftime
 import subprocess
-from pyudev import Context, Monitor, MonitorObserver, Device
+#from pyudev import Context, Monitor, MonitorObserver, Device
 import sys
 import json
 import sqlite3
 import re #String replacements
+import mosquitto, os, urlparse
 from gevent import monkey
 monkey.patch_all()
+import paho.mqtt.client as mqtt
+import zlib
+import unicodedata
+from os.path import expanduser
+from flask.ext.stormpath import StormpathManager,login_required,groups_required,user,current_user,current_app
+from stormpath.client import Client
+import threading
+from datetime import datetime,date
+
 #Global variable declarations
+server_date = {
+'server_date': str(date.today()),
+'email':"dummy"
+# 'server_date':'2014-11-21'
+}
+
 
 templateData = {
     'consoledata':"Nothing yet"+"\n",
     'baseimagedata':"BaseStation offline"+"\n",
-    'flashstarted' : "False"
+    'flashstarted' : "False",
+    'cluster_number':1,
+    'admin':"False",
+    'email':"dummy"
 }
 
 slotnum = 1
 imagepath = "uploads/"
 
-# Initialize the Flask application
-app = Flask(__name__)
-app.debug=True
+#Stormpath and Flask initialisations
+api_key_file = '~/.stormpath/apiKey.properties'
+client = Client(api_key_file_location = expanduser(api_key_file))
 
+app = Flask(__name__)
+app.debug = False
+
+app.config['SECRET_KEY'] = 'xxx'
+app.config['STORMPATH_API_KEY_FILE'] = expanduser('~/.stormpath/apiKey.properties')
+app.config['STORMPATH_APPLICATION'] = 'BITS-Testbed'
+
+#Disable Middle Name as an input while registering
+app.config['STORMPATH_ENABLE_MIDDLE_NAME'] = False
+#Enable User name so that we can use either username/email for login
+# app.config['STORMPATH_ENABLE_USERNAME'] = True
+app.config['STORMPATH_ENABLE_SURNAME'] = False
+app.config['STORMPATH_ENABLE_GIVEN_NAME'] = False
+app.config['STORMPATH_ENABLE_FORGOT_PASSWORD'] = True
 #Code uploading
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 app.config['ALLOWED_EXTENSIONS'] = set(['xml'])
@@ -47,6 +80,15 @@ app.config['ALLOWED_EXTENSIONS'] = set(['xml'])
 app.config['SECRET_KEY']="secret!"
 socketio=SocketIO(app)
 listenrequest=False
+activitylog=False
+stormpath_manager = StormpathManager(app)
+
+#hrefs for BITS-Testbed Application and Account Store Directory
+href = 'https://api.stormpath.com/v1/applications/49g4BErzwiMOORfvPwGbRI'
+application = client.applications.get(href)
+
+href_dir = 'https://api.stormpath.com/v1/directories/49g8VIABIcpbMy63mu4R9s'
+directory = client.directories.get(href_dir)
 
 #Database initialisation
 file_status = os.path.isfile('portal.db')
@@ -71,76 +113,385 @@ if (file_status == False):
             SLOT1 TEXT,
             SLOT2 TEXT,
             SLOT3 TEXT);''')
+    conn.execute('''CREATE TABLE RESERVATIONS
+        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            USEREMAIL TEXT NOT NULL,
+            DATE_RESERVED TEXT NOT NULL,
+            SLOTNUMBERS TEXT NOT NULL,
+            CLUSTERNUMBER TEXT NOT NULL,
+            INVIEWER TEXT NOT NULL);''')
     conn.close()
 
     
 
 #Function Definitions
+
+#MQTT Functions
+def on_connect(mosq, obj, rc):
+    print("rc: " + str(rc))
+
+def on_message(mosq, obj, msg):
+    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    if "response/" in msg.topic:
+        global activitylog
+        if activitylog == True:
+            log_file=open(app.config['UPLOAD_FOLDER']+"activitylog.txt","w")
+            log_file.write(str(msg.payload))
+            log_file.close()
+            socketio.emit('activity',app.config['UPLOAD_FOLDER']+"activitylog.txt",namespace="/listen")
+            activitylog=False
+
+        elif "usbbasepath" in str(msg.payload):
+            # here send data to frontend
+            sleep(2)
+            socketio.emit('usbbasepath',str(msg.payload).replace("usbbasepath",""),namespace="/listen")
+        elif "ping" in str(msg.payload):
+            status=json.loads(str(msg.payload).replace("ping ",''))
+            socketio.emit('ping',json.dumps(status),namespace="/listen")
+        elif "switch" in str(msg.payload):
+            status=json.loads(str(msg.payload).replace("switch ",''))
+            socketio.emit('switch',json.dumps(status),namespace="/listen")
+        elif "flash" in str(msg.payload):
+            status=json.loads(str(msg.payload).replace("flash ",''))
+            socketio.emit('flash',json.dumps(status),namespace="/listen")
+        elif "ackreceived" in str(msg.payload):
+            global templateData
+            templateData['consoledata']="Nothing yet"
+            socketio.emit('ackreceived',str(msg.payload).replace("ackreceived ",""),namespace="/listen")
+        elif "batterystatus" in str(msg.payload):
+            status=json.loads(str(msg.payload).replace("batterystatus ",''))
+            socketio.emit('batterystatus',json.dumps(status),namespace="/listen")   
+        elif "activitylog" in str(msg.payload):
+            print "activitylog"
+            activitylog=True
+
+    elif "listen/" in msg.topic:
+        socketio.emit('my response',str(msg.payload),namespace="/listen")
+    elif msg.topic == "register":
+        database=json.loads(str(msg.payload))
+        conn=sqlite3.connect('portal.db')
+        cursor=conn.execute("SELECT * FROM CLUSTERDETAILS WHERE PI_MAC='"+database['Gatewaymac']+"';")
+        a=cursor.fetchall()
+        listofnodes=a[0][4]
+        conn.execute("UPDATE CLUSTERDETAILS SET PI_IP = \'" + database['Gatewayip'] +"\', SLOT1=\'"+database['Progname1'] +"\', SLOT2=\'"+database['Progname2'] +"\', SLOT3=\'"+database['Progname3'] +"\' WHERE ID="+ str(a[0][0]) +";")
+        conn.commit()
+        registerresponse={
+            'clusterid':a[0][1],
+            'listofnodes':listofnodes
+        }
+        mqttc.publish('register_response',json.dumps(registerresponse))
+        mqttc.subscribe("response/"+str(a[0][1]), 0)
+        mqttc.subscribe("listen/"+str(a[0][1]), 0)
+        conn.close()
+
+def on_publish(mosq, obj, mid):
+    print("mid: " + str(mid))
+
+def on_subscribe(mosq, obj, mid, granted_qos):
+    print("Subscribed: " + str(mid) + " " + str(granted_qos))
+
+def on_log(mosq, obj, level, string):
+    print(string)
+
 # For a given file, return whether it's an allowed type or not
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
 
-def uploadtomote(slotnum,imgpath):
-    print "Uploading to slot number "+slotnum
-    proc = subprocess.Popen(["sym-deluge flash " + slotnum + " "  + imgpath], stdout=subprocess.PIPE,shell=True)
-    (out,err) = proc.communicate()
-    return out
+#MQTT Events
+#mqttc = mosquitto.Mosquitto("python_pub")
+mqttc = mqtt.Client()
+# Assign event callbacks
+mqttc.on_message = on_message
+mqttc.on_connect = on_connect
+#mqttc.on_publish = on_publish
+mqttc.on_subscribe = on_subscribe
 
-def isNodeAlive(nodenum):
-    
-    proc=subprocess.Popen(["tos-deluge serial@"+usb_path_base+":115200 -pr "+str(nodenum)],stdout=subprocess.PIPE,shell = True)
-    #proc=subprocess.Popen(["sym-deluge ping "+str(nodenum)],stdout=subprocess.PIPE,shell = True)
-    out=proc.communicate()[0]
-    if "Battery:" in out:
-        out=out[84:]
-    if "Command sent" in out:
-        battery=(int(out.split('\n')[0])/4095)*100
-        conn = sqlite3.connect('gateway.db')
-        conn.execute("UPDATE NODEDETAILS SET BATTERY_STATUS = \'" + str(battery) + "%\' WHERE NODE_NUM='"+str(nodenum)+"'")
-        conn.commit()
-        conn.close()
-        #out="\nPinged " + str(nodenum) + " successfully!"
-        out = "Alive "
-    else:
-        #out="\nPing of node no. " + str(nodenum) + " failed!"
-        out = "Dead "
+url_str = 'mqtt://localhost:1883'
+url = urlparse.urlparse(url_str)
+mqttc.connect(url.hostname, url.port)
 
-   return out
+#Channels to subscribe
+mqttc.subscribe("register",0)
+mqttc.loop_start()
+
+#List of groups 
+valid_groups_dash = ['admins']
+
+viewer_list = directory.groups.search({'name': 'viewer*'})
+viewer_group1 = False
+viewer_group2 = False
+
+for grp in viewer_list:
+    valid_groups_dash.append(grp)
+
+    if grp.name == "viewer1":
+        viewer_group1 = grp
+
+    elif grp.name == "viewer2":
+        viewer_group2 = grp
+
+admins=directory.groups.search({'name':'admins'})
+admin = False
+for grp in admins:
+    admin = grp
+
+waitings=directory.groups.search({'name':'waiting'})
+waiting = False
+for grp in waitings:
+    waiting = grp
+
+def deletefromgroup():
+    global grouptodelete
+    grouptodelete.delete()
+
+def check_reservations():
+    conn=sqlite3.connect('portal.db')
+    cursor = conn.execute('SELECT * FROM RESERVATIONS WHERE DATE_RESERVED=\''+str(date.today())+'\'')
+    allcursor=cursor.fetchall()
+    for everyelement in allcursor:
+        slots=everyelement[3].split(',')
+        for slot in slots:
+            if int(slot) <= (datetime.now().hour):
+                if everyelement[5] == "True":
+                    conn.execute('UPDATE RESERVATIONS SET INVIEWER = "False" WHERE ID='+str(everyelement[0])+';')
+                    conn.commit()
+                    accounts = directory.accounts.search({'email':everyelement[1]})
+                    for acc in accounts:
+                        group_memberships=acc.group_memberships
+                        for gms in group_memberships:
+                            if "viewer" in gms.group.name:
+                                global grouptodelete
+                                grouptodelete = gms
+                                mqttc.publish("commands/"+str(everyelement[4]),"activitylog")
+                                mqttc.publish("commands/"+str(everyelement[4]),"activitydelete")
+                                threading.Timer(45.0, deletefromgroup).start()
+                elif everyelement[5] == "False":                    # print "Already deleted"
+                    pass 
+
+            elif slot==str((datetime.now().hour)+1):#In hours
+                # print "My slot"
+                if everyelement[5] =="False":
+                    #everyelement[5] = "True"
+                    conn.execute('UPDATE RESERVATIONS SET INVIEWER = "True" WHERE ID='+str(everyelement[0])+';')
+                    conn.commit()
+                    if everyelement[4] == "1":
+	                    try:
+	                        viewer_group1.add_account(everyelement[1])
+	                    except:
+	                       pass
+	                       #print "Already exists"
+                    elif everyelement[4] == "2":
+	                    try:
+	                        viewer_group2.add_account(everyelement[1])
+	                    except:
+	                       pass
+	                        # print "Already exists"
+	           
+               #delete membership for group waiting
+                    try:
+                        accounts=directory.accounts.search({'email':everyelement[1]})
+                        for acc in accounts:
+                            group_memberships=acc.group_memberships
+                            for gms in group_memberships:
+	                           if 'waiting' in gms.group.name:
+	                               gms.delete()
+                    except:
+                        print "Cannot delete error"
+                elif everyelement[5] == "True":
+                    #print "Already in group"
+                    pass
+
+    conn.close()
+
+# Background timing thread
+#Change to 1 minute or greater
+def bg_timer():
+    check_reservations()
+    threading.Timer(5.0, bg_timer).start()
+
+bg_timer()
+
+def validate(value):
+    listofgroups=[]
+    groups_member=user.group_memberships
+    clusterreq=0
+    for gms in groups_member:
+        listofgroups.append(gms.group.name)
+    if "admins" in listofgroups:
+        clusterreq=value
+    elif "viewer1" in listofgroups:
+        clusterreq=1
+    elif "viewer2" in listofgroups:
+        clusterreq=2
+    return clusterreq
+
 
 #App routes         
 @app.route('/')
+def home():
+
+    if current_user.is_authenticated():
+        # print user.email
+        return redirect ('/waiting')
+
+    else:
+        return render_template('index.html')
+
+@app.route('/admin')
+@groups_required(['admins'])
+def admins():
+    return render_template('admin.html')
+
+@app.route('/reserve')
+@login_required
+def reserve():
+        server_date['email']=str(user.email).split('@')[0]
+        return render_template('reserve.html',**server_date)
+
+@app.route('/reserve_slot/',methods=['POST'])
+@login_required
+def reserve_slot():
+    date=request.form['date']
+    clusternumber=request.form['clusternumber']
+    slots=request.form['slots']
+    if slots == "":
+        return "Reservation not complete"
+    conn=sqlite3.connect('portal.db')
+    emailaddress=unicodedata.normalize('NFKD', user.email).encode('ascii','ignore')
+    cursor = conn.execute('SELECT * FROM RESERVATIONS WHERE USEREMAIL = \''+str(emailaddress)+'\' AND DATE_RESERVED=\''+str(date)+'\'')
+    a = cursor.fetchone()
+    if a is not None:
+        print a
+        newlist = a[3].split(',')
+        print newlist
+        newlistint=[]
+        for i in newlist:
+            newlistint.append(int(i))
+        print newlistint
+        slotsnew=slots.split(',')
+        print slotsnew
+        for i in slotsnew:
+            newlistint.append(int(i))
+        newlistint.sort()
+        print newlistint
+        # print 'UPDATE RESERVATIONS SET SLOTNUMBERS=\"'+','.join(newlistint)+'\" WHERE ID=\''+str(a[0])+'\''
+        conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\"'+','.join(map(str,newlistint))+'\" WHERE ID=\''+str(a[0])+'\'')
+        print "gere"
+    else:
+        conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER,INVIEWER) VALUES (\''+(emailaddress)+'\',\''+str(date)+'\',\''+str(slots)+'\',\''+clusternumber+'\',"False")')
+    conn.commit()
+    conn.close()
+    try:
+        user.add_group('waiting')
+    except:
+        print "Already in group"
+    check_reservations()
+    return "Reservation Done!"
+
+@app.route('/delete_slot/',methods=['POST'])
+@login_required
+def delete_slot():
+    date=request.form['date']
+    clusternumber=request.form['clusternumber']
+    slots=request.form['slots']
+    if slots=="":
+        return "Please choose a slot to delete"
+    conn=sqlite3.connect('portal.db')
+    cursor=conn.execute('SELECT * FROM RESERVATIONS WHERE USEREMAIL=\''+str(user.email)+'\' AND DATE_RESERVED=\''+date+'\' AND CLUSTERNUMBER=\''+clusternumber+'\'')
+    allcursor=cursor.fetchall()
+    slotsdelete=slots.split(',')
+    for everyelement in allcursor:
+        slotsnew=[]
+        slotsreserved=everyelement[3].split(',')
+        if slotsreserved == slotsdelete :
+            conn.execute('DELETE FROM RESERVATIONS WHERE ID = '+str(everyelement[0])+';')
+        else:
+            for sr in slotsreserved:
+                for sd in slotsdelete:
+                    if str(sr) == str(sd):
+                        pass
+                    else:
+                        slotsnew.append(sr)
+            conn.execute('UPDATE RESERVATIONS SET SLOTNUMBERS=\''+','.join(slotsnew)+'\' WHERE ID=\''+str(everyelement[0])+'\'')
+    conn.commit()
+    conn.close()
+    return "Slot deleted"
+
+@app.route('/waiting')
+@login_required
+def waiting():
+    allowedtostay=False
+    group_memberships=user.group_memberships
+    for gms in group_memberships:
+        if (gms.group.name == "waiting") or ("viewer" in gms.group.name) or (gms.group.name == "admins"):
+            allowedtostay=True
+    if allowedtostay == False:
+        return redirect('/reserve')
+    elif allowedtostay == True:
+        print "Reservation Done!"
+        server_date['email']=str(user.email).split('@')[0]
+        return render_template('waiting.html',**server_date)
+        
+
+@app.route('/signout')
+def logout():
+    print "Logging out!"
+    # group_memberships = user.group_memberships
+    
+    # for gms in group_memberships:
+    #     # print gms.account.given_name
+    #     if 'viewer' in gms.group.name:
+    #         gms.delete()
+
+    return redirect('/logout')
+
+@app.route('/dashboard/')
+@login_required
+# @groups_required(valid_groups_dash, all=False)
 def index():
-    basepathdetect()
-    return render_template('main.html',**templateData)
+    entry_allowed = False
+    group_memberships = user.group_memberships
+    for gms in group_memberships:
+        for i in valid_groups_dash:
+            if str(gms.group.name) == str(i):
+                entry_allowed = True
+        if gms.group.name == "admins":
+            templateData['admin']=True
+        elif gms.group.name == "viewer1":
+            templateData['cluster_number']=1
+        elif gms.group.name == "viewer2":
+            templateData['cluster_number']=2
+    if entry_allowed == True:
+        mqttc.publish("commands/1","usbbasepath")
+        templateData['email']=str(user.email).split('@')[0]
+        return render_template('dashboard.html',**templateData)
+        
+    else:
+        errorMessage = {
+            'error' : 'You are not allowed here!...yet.'
+        }
+        return render_template('error403.html',**errorMessage)
 
 @app.route('/cluster_status/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def pingall():
-    basepathdetect()
-    status=[]
     imagenum=request.form['data']
-    status.append(isNodeAlive(imagenum))
-    status.append(imagenum)
-    return json.dumps(status)
-    
+
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"ping "+str(imagenum))
+    return "0"
+
 @app.route('/switch/', methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def switch():
     if request.method == "POST":
-        basepathdetect()
         imagenum = request.form['imagenumberswitch']
-
-        proc = subprocess.Popen(["sym-deluge switch " + str(imagenum)],stdout=subprocess.PIPE,shell = True)
-        (out,err) = proc.communicate()
-        out += "\nSwitched to image number " + str(imagenum)
-        imageinfo = BaseStationDetails(imagenum)
-        switchData = {
-            'consoledata':out,
-            'baseimagedata':imageinfo
-        }
-        return json.dumps(switchData)   
+        mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"switch "+str(imagenum))  
+        return "0"
 
 # Route that will process the file upload
 @app.route('/upload', methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def upload():
     global imagepath,slotnum
     slotnum=request.form['imagenumber']
@@ -156,31 +507,38 @@ def upload():
 
     global templateData
     templateData['flashstarted']="True"
-    return redirect('/')
+    return redirect('/dashboard/')
 
 @app.route('/uploads/<filename>')
+@groups_required(valid_groups_dash,all = False)
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename,as_attachment=True)
 
 @app.route('/flashnode/', methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def flashnode():
-    global imagepath,slotnum
-    reply=uploadtomote(slotnum,imagepath)
+    global slotnum
+    f = open(imagepath)
+    datastring = f.read()
+    byteArray = bytes(datastring)
+    checksum = zlib.crc32(datastring, 0xFFFF)
+    print "Checksum is: " + str(checksum)
+    clusterreq=str(validate(request.form['clusterid']))
+    mqttc.publish("files/"+clusterreq, byteArray ,0)
+    mqttc.publish("commands/"+clusterreq, "checksum "+str(checksum))
+    mqttc.publish("commands/"+clusterreq,"flash "+str(slotnum))
     templateData['flashstarted']="False"
-    return reply
+    return "0"
 
 @app.route('/startlisten/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def startlisten():
-    basepathdetect()
-    global ser
-    ser=serial.Serial(port=usb_path_base,baudrate=115200)
-    global listenrequest
-    listenrequest=True
-    serial_socket()
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"startlisten")
     return "Listen Start Done"    
 
 @app.route('/savelog/',methods=['POST'])
+@login_required
 def savedata():
     log_file=open(app.config['UPLOAD_FOLDER']+request.form['filename'],"w")
     log_data = request.form['filedata']
@@ -190,44 +548,37 @@ def savedata():
     #return redirect(url_for('uploaded_file',filename="log.txt"))
     return "Uploaded"
 
+@app.route('/activity/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
+def activitylog():
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"activitylog")
+    return "Activity log will be downloaded"
+
+
 @app.route('/stoplisten/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def stoplisten():
-    global ser
-    global listenrequest
-    listenrequest=False
-    ser.close()
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"stoplisten")
     return "0"
 
 
 @app.route('/ackreceived/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
 def ackreceived():
-    basepathdetect()
-    line=[]
-    ser1=serial.Serial(port=usb_path_base,baudrate=115200)
-    while True:
-        for c in ser1.read():
-            line.append(c.encode('hex'))
-            if c.encode('hex')=="7e":
-                if line.count('7e')==2:
-                    packet=''.join(line)
-                    print packet
-                    if packet[24:30]=="003f53":
-                        print packet[22:24]
-                        ser1.close()
-                        global templateData
-                        templateData['consoledata']="Nothing yet"
-                        return packet[22:24]
-                    line=[] 
-                    packet=""
+    print "ackreceived"
+    mqttc.publish("commands/"+str(validate(request.form['clusterid'])),"ackreceived")
+    return "0"
 
 @app.route('/data_manage/')
+@groups_required(['admins'])
 def data_manage():
     return render_template('data_manage.html')
 
 @app.route('/data_add/', methods=['POST'])
+@groups_required(['admins'])
 def data_add():
     table=request.form['data']
-    conn = sqlite3.connect('gateway.db')
+    conn = sqlite3.connect('portal.db')
     if table == "nodeadd":
         nodeid=(request.form['nodeid'])
         dev_id=(request.form['dev_id'])
@@ -248,31 +599,37 @@ def data_add():
     return '0'
 
 @app.route('/data_get/',methods=['POST'])
+@groups_required(['admins'])
 def data_get():
     table=request.form['data']
-    conn = sqlite3.connect('gateway.db')
+    conn = sqlite3.connect('portal.db')
     if table == "nodesdata":
         cursor=conn.execute("SELECT * from NODEDETAILS")
         a = cursor.fetchall()
     elif table == "clustersdata":
         cursor=conn.execute("SELECT * from CLUSTERDETAILS")
         a = cursor.fetchall()
+    elif table == "reservationsdata":
+    	cursor=conn.execute("SELECT * FROM RESERVATIONS")
+    	a=cursor.fetchall()
     print a
     conn.close()
     # print "after"+a
     return json.dumps(a)
 
 @app.route('/data_edit/',methods=['POST'])
+@groups_required(['admins'])
 def data_edit():
-    conn = sqlite3.connect('gateway.db')
+    conn = sqlite3.connect('portal.db')
     idno=(request.form['idno'])
     table=request.form['data']
+    print table
     if table == "nodeedit":
         nodeid=(request.form['nodeid'])
         dev_id=(request.form['dev_id'])
         node_prop=request.form['nodeprop']
         node_type=request.form['nodetype']
-        conn.execute("UPDATE NODEDETAILS SET NODE_NUM = "+nodeid+" ,DEV_ID = "+dev_id+", NODE_TYPE = '"+node_type+"', SPECIAL_PROP = '" + node_prop + "' WHERE ID="+ idno +";")
+        conn.execute("UPDATE NODEDETAILS SET NODE_NUM = "+nodeid+" ,DEV_ID = '"+dev_id+"', NODE_TYPE = '"+node_type+"', SPECIAL_PROP = '" + node_prop + "' WHERE ID="+ idno +";")
         print "done"
     elif table == "clusteredit":
         clusterno=request.form['clusterno']
@@ -282,19 +639,167 @@ def data_edit():
         gateway_mac=request.form['gateway_mac']
         gateway_ip=request.form['gateway_ip']
         conn.execute("UPDATE CLUSTERDETAILS SET CLUSTER_NO = " + clusterno + ",HEAD_NO = "+ clusterhead_no +",HEAD_DEVICEID = '"+ head_dev_id +"',NODE_LIST = '" + node_list + "',PI_MAC = '" + gateway_mac + "',PI_IP = '" + gateway_ip+"' WHERE ID="+ idno +";")
+    elif table == "reservationedit":
+        useremail=request.form['useremail']
+        slotnumbers=request.form['slotnumbers']
+        clusternumber=request.form['clusternumber']
+        datereserved=request.form['datereserved']
+        inviewer=request.form['inviewer']
+        conn.execute("UPDATE RESERVATIONS SET USEREMAIL = \'" + str(useremail) + "\',DATE_RESERVED = \'"+ str(datereserved) +"\',SLOTNUMBERS = '"+ str(slotnumbers) +"',CLUSTERNUMBER = '" + str(clusternumber) + "',INVIEWER = '" + str(inviewer) + "\' WHERE ID="+ str(idno) +";")
     conn.commit()
     conn.close()
     return "Done"
 
+@app.route('/data_delete/',methods=['POST'])
+@groups_required(['admins'])
+def data_delete():
+    conn=sqlite3.connect('portal.db')
+    idno=request.form['idno']
+    deletewhat=request.form['deletewhat']
+    if deletewhat == "node":
+        conn.execute("DELETE FROM NODEDETAILS WHERE ID=\'"+idno+"\'")
+    elif deletewhat == "cluster":
+        conn.execute("DELETE FROM CLUSTERDETAILS WHERE ID=\'"+idno+"\'")
+    elif deletewhat == "reservation":
+        conn.execute("DELETE FROM RESERVATIONS WHERE ID=\'"+idno+"\'")
+    conn.commit()
+    conn.close()
+    return "Data Entry Deleted"
+
+@app.route('/clusterdetails/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
+def clusterdetails():
+    clusternumbers=[]
+    clusternum=request.form['data']
+    conn=sqlite3.connect('portal.db')
+    cursor=conn.execute("SELECT * FROM CLUSTERDETAILS")
+    first=[]    
+    if clusternum == "dummydata":
+        first=cursor.fetchone()
+        clusternumbers.append(str(first[1]))
+        remaining=cursor.fetchall()
+        for i in remaining:
+            clusternumbers.append(str(i[1]))
+    else:
+        allvalues=cursor.fetchall()
+        for i in allvalues:
+            clusternumbers.append(str(i[1]))
+            if str(i[1]) == clusternum:
+                first=i
+    datareturn={
+        'clusternumbers':','.join(clusternumbers),
+        'listofnodes':first[4],
+        'slot1':first[7],
+        'slot2':first[8],
+        'slot3':first[9]
+    }
+    conn.close()
+
+    return json.dumps(datareturn)
+
+
+@app.route('/add_registration/',methods=['POST'])
+@groups_required(valid_groups_dash,all = False)
+def add_registration():
+    useremail=request.form['useremail']
+    date=request.form['date_reserved']
+    slots=request.form['slot_numbers']
+    clusternum=request.form['cluster_number']
+    conn=sqlite3.connect('portal.db')
+    conn.execute('INSERT INTO RESERVATIONS (USEREMAIL,DATE_RESERVED,SLOTNUMBERS,CLUSTERNUMBER) VALUES (\''+useremail+'\',\''+date+'\',\''+slots+'\',\''+clusternum+'\'')
+    conn.commit()
+    conn.close()
+    return "Reservation Done"
+
+@app.route('/get_registration/',methods=['POST'])
+@login_required
+def get_registration():
+    clusternumbers=[]
+    date=request.form['date_reserved']
+    clusternum=request.form['cluster_number']
+    whichpage = request.form['pagename']
+    conn=sqlite3.connect('portal.db')
+    cursor=conn.execute('SELECT * FROM RESERVATIONS WHERE DATE_RESERVED=\''+date+'\' AND CLUSTERNUMBER=\''+clusternum+'\'')
+    allcursor=cursor.fetchall()
+    slotsreserved=[]
+    slotsreservedforme=[]
+    
+    min_slot = 25
+    delta = 0
+    # print allcursor
+    if whichpage == 'waiting':
+        for everyelement in allcursor:
+            if str(user.email) == everyelement[1]:
+                # Check for next valid slot for this user
+                list_el= everyelement[3].split(',')
+                for i in list_el:
+                    if ((int(i)- datetime.now().hour) >= 1):
+                        if min_slot > int(i):
+                            min_slot = int(i)
+                            print i
+                        slotsreservedforme.append(i)
+                    else:
+                        slotsreserved.append(i)
+            else:
+                slotsreserved.append(str(everyelement[3]))
+    elif whichpage == 'reserve':
+        for everyelement in allcursor:
+            slotsreserved.append(str(everyelement[3]))
+    if min_slot != 25:
+        delta_hour=(min_slot-datetime.now().hour-2)    
+        delta_min=60-(datetime.now().minute)
+        delta_sec=60-(datetime.now().second)
+
+        delta = delta_sec+60*delta_min+3600*delta_hour
+        print "time"+str(delta_hour)
+
+    elif min_slot == 25:
+        delta = 90000
+
+    cursor1=conn.execute("SELECT * FROM CLUSTERDETAILS")
+    allvalues=cursor1.fetchall()
+    for i in allvalues:
+        clusternumbers.append(str(i[1]))
+        if str(i[1]) == clusternum:
+            first=i
+    conn.close()
+    #For current slot
+    if delta < 0:
+        delta=0
+    return json.dumps({'slotsreserved':','.join(slotsreserved),'listofnodes':first[4],'clusternumbers':clusternumbers,'slotsreservedforme':','.join(slotsreservedforme),'next_slot_delta':delta})
 
 #NOT REDUNDANT!
 @socketio.on('listen',namespace='/listen')
+@groups_required(valid_groups_dash,all = False)
 def handle_message(message):
     print('received message: ' + message)
 
+#Custom Error Handlers
+@app.errorhandler(403)
+def access_denied(e):
+
+    errorMessage = {
+            'error' : 'You are not allowed here!...yet.'
+        }
+
+    return render_template('error403.html',**errorMessage), 403
+
+@app.errorhandler(404)
+def page_not_found(e):
+    errorMessage = {
+
+            'error' : 'Are you sure this is where you want to be?'
+        }
+
+    return render_template('error404.html',**errorMessage), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    errorMessage = {
+            'error' : 'Seems like something bad happened...'
+        }
+
+    return render_template('error500.html', **errorMessage), 500
 
 if __name__ == '__main__':
     socketio.run(app,host='0.0.0.0',port=8088)
-
-
-

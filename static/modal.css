@@ -213,8 +213,8 @@ html {
 }
 @media screen and (max-height: 46em) and (min-width: 30em) {
   .modal--show .modal-content {
-    max-height: 340px;
-    max-height: 50vh;
+/*    max-height: 340px;
+    max-height: 50vh;*/
   }
 }
 @media screen and (max-height: 36em) and (min-width: 30em) {

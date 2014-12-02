@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" type="text/css" href="/static/storm.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function(){
+      setInterval(function(){
+        alert("Redirecting to login");
+        window.location.href="/login";
+      }
+        ,5000);
+
+    });
+
+
+
+    </script>
+  </head>
+
+
+  <body>
+   
+   
+  <div class="container reserve-container">
+    <div class="reserve-box">
+      <div class="header">
+        <center><h1>Gotcha!!</h1>
+        <img src="http://4.bp.blogspot.com/_Gmdku9sqQNI/S7wrvi6L7EI/AAAAAAAAAGY/hoUs6VVfrL0/s320/Calvin&Hobbes.png_thumb.jpg">
+        </center>
+
+      </div>
+      <center>
+        
+      <div>
+        {{error}}
+        
+      </br>
+    </br> 
+       </div>  
+      </center>
+      
+    </div>
+    </div>
+  </body>
+</html>
+ 

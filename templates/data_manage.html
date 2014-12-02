@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
 		<!-- Force Cache Reload -->
 		<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 		<meta http-equiv="Pragma" content="no-cache" />
 		<meta http-equiv="Expires" content="0" />
+	   <link rel="stylesheet" type="text/css" href="/static/style.css">
+       <link rel="stylesheet" type="text/css" href="/static/storm.css">
+    
+		
 
-		<h1>Database Management</h1>
-
-		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
-          rel="stylesheet">
+		<!-- <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"
+          rel="stylesheet"> -->
 		<link rel="stylesheet" type="text/css" href="/static/style.css">
 		<link rel="stylesheet" type="text/css" href="/static/modal.css">
 
@@ -20,44 +23,67 @@
 		var jsondata;
 		var jsondatacluster;
 
-		function editclick(name){
+		function editclick(name,i){
 			$("#modal-node-edit").show();
 			$('#edit_idno').val(name);
-			$('#edit_nodeid').val(jsondata[name-1][1]);
-			$('#edit_dev_id').val(jsondata[name-1][2]);
-			$('#edit_nodetype').val(jsondata[name-1][3]);
-			$('#edit_nodeprop').val(jsondata[name-1][4]);
+			$('#edit_nodeid').val(jsondata[i][1]);
+			$('#edit_dev_id').val(jsondata[i][2]);
+			$('#edit_nodetype').val(jsondata[i][3]);
+			$('#edit_nodeprop').val(jsondata[i][4]);
 		}
 
-		function editclickcluster(name){
+		function editclickcluster(name,i){
 			$('#modal-cluster-edit').show();
 			$('#edit_cluster_idno').val(name);
-			$('#edit_cluster_no').val(jsondatacluster[name-1][1]);
-			$('#edit_clusterhead_no').val(jsondatacluster[name-1][2]);
-			$('#edit_head_dev_id').val(jsondatacluster[name-1][3]);
-			$('#edit_node_list').val(jsondatacluster[name-1][4]);
-			$('#edit_gateway_mac').val(jsondatacluster[name-1][5]);
-			$('#edit_gateway_ip').val(jsondatacluster[name-1][6]);
-		}
+			$('#edit_cluster_no').val(jsondatacluster[i][1]);
+			$('#edit_clusterhead_no').val(jsondatacluster[i][2]);
+			$('#edit_head_dev_id').val(jsondatacluster[i][3]);
+			$('#edit_node_list').val(jsondatacluster[i][4]);
+			$('#edit_gateway_mac').val(jsondatacluster[i][5]);
+			$('#edit_gateway_ip').val(jsondatacluster[i][6]);
+		}		
 
 	$(document).ready(function(){
 		// $("#data_add_form").hide();
 		// $("#editform").hide();
 		// $("#cluster_add_form").hide();
 		// $('#clustereditform').hide();
+		deleteclick=function (name){
+			//Promt for yes and no
+			//if yes then the following code
+			var value=confirm('Did you want to delete?');
+			if(value == true){	
+			$.post('/data_delete/',{idno:name,deletewhat:'node'},function(result,status){
+				getnodedata();
+				alert(result);
+			});
+		}
+		}
+
+		deleteclickcluster=function (name){
+			//Promt for yes and no
+			//if yes then the following code
+			var value=confirm('Did you want to delete?');
+			if(value == true){
+			$.post('/data_delete/',{idno:name,deletewhat:'cluster'},function(result,status){
+				getclusterdata();
+				alert(result);
+			});
+		}
+		}
 
 		function getnodedata(){
 			$.post('/data_get/',{data:'nodesdata'},function(result,status){
 				// alert(result);
 				jsondata=$.parseJSON(result);
 				// alert(jsondata.length);
-				var html = '<table style="width:100%"><tr><td>Node No.</td><td>Device ID.</td><td>Node Type</td><td>Properties</td>			<td>Battery Status</td><td></td></tr>';
+				var html = '<table style="width:100%" class="CSSTableGenerator"><tr><td>Node No.</td><td>Device ID.</td><td>Node Type</td><td>Properties</td>			<td>Battery Status</td><td></td></tr>';
 				for (var i=0;i<jsondata.length;i++){
 					html+='<tr>';
 					for (var j=1;j<6;j++){
 						html+='<td>'+jsondata[i][j]+'</td>';
 					}
-					html+='<td><a href="#modal-node-edit"><button onclick="editclick('+jsondata[i][0]+');">Edit</button></a></td></tr>';
+					html+='<td><a href="#modal-node-edit"><button onclick="editclick('+jsondata[i][0]+','+i+');">Edit</button></a><button onclick="deleteclick('+jsondata[i][0]+');">Delete</button></td></tr>';
 
 				}
 				html+='</table>';
@@ -73,13 +99,13 @@
 				// alert(result);
 				jsondatacluster=$.parseJSON(result);
 				// alert(jsondata.length);
-				var html = '<table style="width:100%"><tr><td>Cluster No.</td><td>Cluster Head No.</td><td>ClusterHead Device ID</td><td>List of Nodes</td><td>Gateway MAC</td><td>Gateway IP</td><td>Code Details Slot 1</td><td>Code Details Slot 2</td><td>Code Details Slot 3</td><td></td></tr>';
+				var html = '<table style="width:100%" class="CSSTableGenerator"><tr><td>Cluster No.</td><td>Cluster Head No.</td><td>ClusterHead Device ID</td><td>List of Nodes</td><td>Gateway MAC</td><td>Gateway IP</td><td>Code Details Slot 1</td><td>Code Details Slot 2</td><td>Code Details Slot 3</td><td></td></tr>';
 				for (var i=0;i<jsondatacluster.length;i++){
 					html+='<tr>';
 					for (var j=1;j<10;j++){
 						html+='<td>'+jsondatacluster[i][j]+'</td>';
 					}
-					html+='<td><a href="#modal-cluster-edit"><button onclick="editclickcluster('+jsondatacluster[i][0]+');">Edit</button></a></td></tr>';
+					html+='<td><a href="#modal-cluster-edit"><button onclick="editclickcluster('+jsondatacluster[i][0]+','+i+');">Edit</button></a><button onclick="deleteclickcluster('+jsondatacluster[i][0]+');">Delete</button></td></tr>';
 
 				}
 				html+='</table>';
@@ -89,7 +115,6 @@
 
 			});
 		}
-
 	getnodedata();
 	getclusterdata();
 
@@ -139,8 +164,8 @@
 		$('#edit_nodetype').val('');
 		$('#edit_nodeprop').val('');
 		$('#editform').hide();
-		getnodedata();
 		location.href = '#';
+		getnodedata();
 	});
     
     });
@@ -218,7 +243,7 @@
         var highlightopen = true;
  
         //Initialise collapsible panels
-        function panelinit() {
+        window.panelinit=function() {
                 for (var i=1; i<=totalpanels; i++) {
                     panelheight[i] = parseInt($('#cp-'+i).find('.expandable-panel-content').css('height'));
                     $('#cp-'+i).find('.expandable-panel-content').css('margin-top', -panelheight[i]);
@@ -281,8 +306,12 @@
 	</head>
 
 	<body>
-	<div class="container">
-
+	<div class="dash-container">
+    <div class="dash-box">
+    	<div class="header">
+        <h1 class="dash">Database Management</h1>
+    </br>
+    	</div>
 		<!-- Modal Forms -->
 
 		<!-- Node Data Add Form -->
@@ -371,7 +400,7 @@
 	        data-dismiss="modal">?</a>
 		</section>
 
-
+		<!-- Cluster Data Edit Form -->
 	  	<section class="modal--show" id="modal-cluster-edit" tabindex="-1" role="dialog" aria-labelledby="modal-label" aria-hidden="true">
 
 	    <div class="modal-inner">
@@ -406,7 +435,7 @@
 		<div class="expandable-panel" id="cp-1">
 
         	<div class="expandable-panel-heading">
-        	  <h2>Cluster Description<a href="#modal-node-add" class="panelButton" title="Add Node Data" >Add Node Data</a><span class="icon-close-open"></span></h2>
+        	  <h2>Cluster Description<button onclick="window.location.href='#modal-node-add'" class="panelButton" title="Add Node Data">Add Node Data</button><span class="icon-close-open"></span></h2>
         	</div>
 
 	        <div class="expandable-panel-content">
@@ -421,7 +450,7 @@
 	    <div class="expandable-panel" id="cp-2">
 
         	<div class="expandable-panel-heading">
-        	  <h2>Testbed Description<a href="#modal-cluster-add" class="panelButton" title="Add Cluster Details" >Add Cluster Data<span class="icon-close-open"></a></span></h2>
+        	  <h2>Testbed Description<span><button onclick="window.location.href='#modal-cluster-add'" class="panelButton" title="Add Cluster Details">Add Cluster Data</button></span><span class="icon-close-open"></span></h2>
         	</div>		
         	<div class="expandable-panel-content">
         		<div id="clustersdata"></div>
@@ -430,6 +459,7 @@
 
 	<hr>
 	<!-- Container Div ends -->
+</div>
   	</div> 
   	<!-- Body Ends -->
   	</body>

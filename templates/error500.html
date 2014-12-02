@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300,600" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" type="text/css" href="/static/storm.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function(){
+      setInterval(function(){
+        alert("Redirecting to home");
+        window.location.href="/";
+      }
+        ,5000);
+
+    });
+
+
+
+    </script>
+  </head>
+
+
+  <body>
+   
+   
+  <div class="container reserve-container">
+    <div class="reserve-box">
+      <div class="header">
+        <center><h1>Oops!</h1>
+        <img src="http://affordablehousinginstitute.org/blogs/us/wp-content/uploads/calvin_oops.gif">
+
+        </center>
+         <button id="Signout" onclick="window.location.href='/signout'" class="formButton" title="Logout">Logout</button>
+        <button id="Signout" onclick="window.location.href='/'" class="formButton" title="Home">Go to Home Page</button>
+
+      </div>
+      <center>
+        
+      <div>
+        {{error}}
+        
+      </br>
+    </br> 
+       </div>  
+      </center>
+      
+    </div>
+    </div>
+  </body>
+</html>
+ 
